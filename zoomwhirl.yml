@@ -1,0 +1,21 @@
+# NOTE: apt-get install build-essential contains required compilers on debian
+---
+name: zoomwhirl
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.7
+  - numpy
+  - scipy
+  - pandas
+  - plotly
+  - dash
+  - gunicorn
+  - flask
+  - pip
+  - pip:
+
+      - dash_bootstrap_components
+
+
