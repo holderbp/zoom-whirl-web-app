@@ -1,0 +1,77 @@
+
+2022-10-16 BPH
+
+I added the app to my heroku server:
+
+zoomwhirl.heroku.com
+
+To do this, I did the following steps:
+
+1) I added gunicorn and flask to my conda environment "zoomwhirl.yml" and pared down that environment to include only the necessary packages.
+
+2) Got a heroku account and made a "zoomwhirl" project.
+
+3) Downloaded the heroku command-line tools:
+
+> brew tap heroku/brew && brew install heroku
+
+4) installed heroku autocomplete:
+
+> heroku autocomplete
+
+5) logged in to heroku using the CL tools
+
+> heroku login
+
+6) Added heroku as a remote server for my existing git directory, using my already established heroku project "zoomwhirl" 
+
+> heroku git:remote -a zoomwhirl
+
+7) Following the Dash deployment instructions:
+
+https://dash.plotly.com/deployment
+
+I added a file "Procfile" with this single line contents:
+
+> cat Procfile
+web: gunicorn zw_app:server
+
+where I used "zw_app" since my app name is zw_app.py
+
+8) Added a line in "zw_app.py" after declaration of the app:
+
+app = dash.Dash( ...)
+server = app.server # new line needed for Heroku ("server" is listed in Procfile)
+
+9) Activated my conda environment ("zoomwhirl") and then got pip to dump the requirements to a file:
+
+pip list --format=freeze  > requirements.txt
+
+Note that the standard command "pip freeze > requirements.txt" doesn't work because it produces local paths for each requirement instead of the generic version information.  I found this workaround on stackexchange:
+
+https://stackoverflow.com/questions/62885911
+
+10) Added Procfile and requirements.txt to git, committed the changes,
+and pushed to my github repository:
+
+> git add Procfile
+> git add requirements.txt
+> git commit -m "added files for Heroku"
+> git push
+
+11) Pushed the files to heroku (possible after step (6)):
+
+> git push heroku main
+
+Heroku reports back the progress of installing the app and its python requirements.  It failed the first two times because (1) the above-mentioned requirements.txt issue, and (2) because I didn't have the "server = app.server" line in zw_app.py.  I found the second error by going to the site, seeing there was an error and then (following instructions at the site error page), looking at my logs:
+
+> heroku logs
+
+which pointed to the lack of "server" in the python script.
+
+12) It now works!  Just go to that site:
+
+zoomwhirl.heroku.com
+
+There is a problem on startup that it doesn't load anything, but it quickly brings up the graphs and interface.
+
