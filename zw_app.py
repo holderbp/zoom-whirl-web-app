@@ -42,6 +42,11 @@ app = dash.Dash(
     suppress_callback_exceptions=True,  # suppress initial load errors
 )
 #
+#--- Create a server (used by heroku)
+#
+server = app.server
+
+#
 # The "backbone" of the site was taken from my COVID portal.  Web
 # content will be placed into "page-content" below.
 #
