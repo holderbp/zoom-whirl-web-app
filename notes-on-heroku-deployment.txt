@@ -71,7 +71,7 @@ which pointed to the lack of "server" in the python script.
 
 12) It now works!  Just go to that site:
 
-zoomwhirl.heroku.com
+zoomwhirl.herokuapp.com
 
 There is a problem on startup that it doesn't load anything, but it quickly brings up the graphs and interface.
 

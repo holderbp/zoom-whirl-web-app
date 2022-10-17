@@ -1,0 +1,11 @@
+
+2022-10-17
+
+- Show value of eccentricity and apoapsis under the orbit
+
+- fix the "Controls": remove reset button, make a pause, ff/rew, and 2x 1/2x buttons
+
+- Make grab-able shapes for the energy and the angular momentum, for fast changing of their values
+
+- Fit the window size better (currently dashboard doesn't fit on my laptop screen, need to scroll down)
+
