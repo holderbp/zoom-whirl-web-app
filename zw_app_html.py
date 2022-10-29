@@ -5,6 +5,10 @@ import dash_bootstrap_components as dbc
 effpot_fontsize = '10pt'
 effpot_fontsize_small = '8pt'
 
+height_firstrow = '55vh'
+height_secondrow = '35vh'
+height_secondrow_card = '45vh'
+
 ###############################
 #   dashboard webpage setup   #
 ###############################
@@ -50,6 +54,15 @@ def make_dashboard_webpage(
                       #data=init_gw_data,
                       clear_data=False,
                       modified_timestamp=-1),
+            #
+            #=== First Row
+            #
+            html.H3(
+                children = "Schwarzschild geodesics for exploring \"Zoom-Whirl\" Orbits and their gravitational waves",
+                style = {
+                    'textAlign': 'center'
+                },
+            ),
             #
             #=== First Row
             #
@@ -140,7 +153,7 @@ def make_dashboard_webpage(
                             ],
                         )
                     ],
-                    style = {'height' : '55vh'}
+                    style = {'height' : height_firstrow}
                 )     
             ]),
             #
@@ -162,7 +175,7 @@ def make_dashboard_webpage(
                                         # but it does not work, so this must be
                                         # something smaller than the card height
                                         # specified below in "vh" (viewwindow height)
-                                        'height' : '40vh',
+                                        'height' : height_secondrow,
                                     },
                                     config={
                                         'displayModeBar': False,
@@ -174,7 +187,7 @@ def make_dashboard_webpage(
                                     style={
                                         'display': 'inline-block',
                                         'width' : '50%',
-                                        'height' : '40vh',
+                                        'height' : height_secondrow,
                                     },
                                     config={
                                         'displayModeBar': False,
@@ -183,7 +196,7 @@ def make_dashboard_webpage(
                             ]
                         )
                     ],
-                    style = { 'height' : '45vh' }
+                    style = { 'height' : height_secondrow_card }
                 )
             ])
         ],
