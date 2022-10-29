@@ -76,21 +76,21 @@ def make_dashboard_webpage(
                     ),
                 ], width=5),
                 # first row: (2) of (3) columns
-                dbc.Col([
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Controls"),
-                            dbc.CardBody(
-                                [
-                                    html.Button('re-calculate', id='recalculate-button',
-                                                n_clicks=0,
-                                                style={'display': 'inline-block'}),
-                                    #'width': '10vw'}),
-                                ]
-                            ),
-                        ]
-                    )
-                ], width=2),
+                # dbc.Col([
+                #     dbc.Card(
+                #         [
+                #             dbc.CardHeader("Controls"),
+                #             dbc.CardBody(
+                #                 [
+                #                     html.Button('re-calculate', id='recalculate-button',
+                #                                 n_clicks=0,
+                #                                 style={'display': 'inline-block'}),
+                #                     #'width': '10vw'}),
+                #                 ]
+                #             ),
+                #         ]
+                #     )
+                # ], width=2),
                 # first row: (3) of (3) columns
                 dbc.Col([
                     dbc.Card([
