@@ -3,6 +3,7 @@ import dash.dcc as dcc
 import dash_bootstrap_components as dbc
 
 effpot_fontsize = '10pt'
+effpot_fontsize_small = '8pt'
 
 ###############################
 #   dashboard webpage setup   #
@@ -90,7 +91,7 @@ def make_dashboard_webpage(
                                         children="Angular Momentum: ",
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 20,
+                                            'margin-right': 10,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -103,7 +104,7 @@ def make_dashboard_webpage(
                                         size = '7',
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 40,
+                                            'margin-right': 20,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -111,7 +112,7 @@ def make_dashboard_webpage(
                                         children="Energy: ",
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 20,
+                                            'margin-right': 10,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -125,8 +126,16 @@ def make_dashboard_webpage(
                                         style={
                                             'display': 'inline-block',
                                             'font-size' : effpot_fontsize,
+                                            'margin-right': 10,
                                         }
-                                    )
+                                    ),
+                                    html.Div(
+                                        children="(\"Natural\" units, with G=c=M=1)",
+                                        style={
+                                            'display': 'inline-block',
+                                            'font-size' : effpot_fontsize_small,
+                                        }
+                                    ),                                    
                                 ]),
                             ],
                         )
@@ -140,7 +149,7 @@ def make_dashboard_webpage(
             dbc.Row([
                 dbc.Card(
                     [
-                        dbc.CardHeader("Gravitational Wave Signal"),
+                        dbc.CardHeader("Gravitational Wave Signal (for m/M = 1/1000000)"),
                         dbc.CardBody(
                             [
                                 dcc.Graph(
