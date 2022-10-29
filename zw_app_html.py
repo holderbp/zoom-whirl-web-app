@@ -2,6 +2,8 @@ import dash.html as html
 import dash.dcc as dcc
 import dash_bootstrap_components as dbc
 
+effpot_fontsize = '10pt'
+
 ###############################
 #   dashboard webpage setup   #
 ###############################
@@ -51,118 +53,93 @@ def make_dashboard_webpage(
             #=== First Row
             #
             dbc.Row([
-                # first row: (1) of (3) columns
-                dbc.Col([
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Orbit"),
-                            dbc.CardBody(
-                                [
+                dbc.CardGroup(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Orbit"),
+                                dbc.CardBody([
                                     dcc.Graph(
                                         id='orbitgraph',
                                         figure=init_orbit_fig,
                                         style={
-                                            'width': '100%',
-                                            #'display': 'inline-block',
-                                            #'width': '40vw'}),
+                                            'height': '90%',
                                         },
                                         config={
                                             'displayModeBar': False,
                                         }
                                     )
-                                ]
-                            )
-                        ]
-                    ),
-                ], width=5),
-                # first row: (2) of (3) columns
-                # dbc.Col([
-                #     dbc.Card(
-                #         [
-                #             dbc.CardHeader("Controls"),
-                #             dbc.CardBody(
-                #                 [
-                #                     html.Button('re-calculate', id='recalculate-button',
-                #                                 n_clicks=0,
-                #                                 style={'display': 'inline-block'}),
-                #                     #'width': '10vw'}),
-                #                 ]
-                #             ),
-                #         ]
-                #     )
-                # ], width=2),
-                # first row: (3) of (3) columns
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader("Effective Potential"),
-                        dbc.CardBody([
-                            dbc.Row(dbc.Col(
-                                html.Div(
-                                    children=[
-                                        dcc.Graph(
-                                            id='potentialgraph',
-                                            figure=init_pot_fig,
-                                            style={
-                                                'width': '100%',
-                                                #'display': 'inline-block',
-                                                #'width': '40vw'}),
-                                            },
-                                            config={
-                                                'displayModeBar': False,
-                                            }
-                                        ),
-                                    ]
-                                )
-                            )),
-                            dbc.Row(dbc.Col([
-                                html.Div(
-                                    children=[
-                                        html.Div(
-                                            children="Angular Momentum: ",
-                                            style={'display': 'inline-block',
-                                                   'margin-right': 20}
-                                        ),
-                                        dcc.Input(
-                                            id='angmom-val-str', type='text',
-                                            value = default_angmom_str,
-                                            placeholder = default_angmom_str,
-                                            # don't allow update until user enters
-                                            debounce = True,
-                                            size = '7',
-                                            style={'display': 'inline-block',
-                                                   'margin-right': 40}
-                                        ),
-                                        html.Div(
-                                            children="Energy: ",
-                                            style={'display': 'inline-block',
-                                                   'margin-right': 20}
-                                        ),
-                                        dcc.Input(
-                                            id='energy-val-str', type='text',
-                                            value = default_energy_str,
-                                            placeholder = default_energy_str,
-                                            # don't allow update until user enters
-                                            debounce = True,
-                                            size = '7',
-                                            style={'display': 'inline-block'}
-                                        )
-                                    ],
-                                )
-                            ]))
-                        ])
-                    ])
-                ],
-                        width=5,
-                )
-            ],
-                    style={"height": "70%"}
-            ),
+                                ]),
+                            ],
+                        ),
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Effective Potential"),
+                                dbc.CardBody([
+                                    dcc.Graph(
+                                        id='potentialgraph',
+                                        figure=init_pot_fig,
+                                        style={
+                                            'height': '85%',
+                                        },
+                                        config={
+                                            'displayModeBar': False,
+                                        }
+                                    ),
+                                    html.Div(
+                                        children="Angular Momentum: ",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 20,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
+                                    dcc.Input(
+                                        id='angmom-val-str', type='text',
+                                        value = default_angmom_str,
+                                        placeholder = default_angmom_str,
+                                        # don't allow update until user enters
+                                        debounce = True,
+                                        size = '7',
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 40,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
+                                    html.Div(
+                                        children="Energy: ",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 20,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
+                                    dcc.Input(
+                                        id='energy-val-str', type='text',
+                                        value = default_energy_str,
+                                        placeholder = default_energy_str,
+                                        # don't allow update until user enters
+                                        debounce = True,
+                                        size = '7',
+                                        style={
+                                            'display': 'inline-block',
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    )
+                                ]),
+                            ],
+                        )
+                    ],
+                    style = {'height' : '55vh'}
+                )     
+            ]),
             #
             #=== Second Row
             #
             dbc.Row([
-                dbc.Col([
-                    dbc.Card([
+                dbc.Card(
+                    [
                         dbc.CardHeader("Gravitational Wave Signal"),
                         dbc.CardBody(
                             [
@@ -170,10 +147,13 @@ def make_dashboard_webpage(
                                     id='gw_plus_graph',
                                     figure=init_gw_plus_fig,
                                     style={
-                                        #'width': '100%',
                                         'display': 'inline-block',
-                                        'width': '40vw',
-                                        'margin-right': 20
+                                        'width' : '50%',
+                                        # should be able to say height=100%
+                                        # but it does not work, so this must be
+                                        # something smaller than the card height
+                                        # specified below in "vh" (viewwindow height)
+                                        'height' : '40vh',
                                     },
                                     config={
                                         'displayModeBar': False,
@@ -183,9 +163,9 @@ def make_dashboard_webpage(
                                     id='gw_cross_graph',
                                     figure=init_gw_cross_fig,
                                     style={
-                                        #'width': '100%',
                                         'display': 'inline-block',
-                                        'width': '40vw',
+                                        'width' : '50%',
+                                        'height' : '40vh',
                                     },
                                     config={
                                         'displayModeBar': False,
@@ -193,11 +173,11 @@ def make_dashboard_webpage(
                                 ),
                             ]
                         )
-                    ])
-                ], width=12 )
-            ], align='center'),
+                    ],
+                    style = { 'height' : '45vh' }
+                )
+            ])
         ],
-        style={"height": "100vh"},
     )
     return dashboard_page
 ###############################

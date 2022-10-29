@@ -223,6 +223,7 @@ def makefig_gw(t, H, Htype):
             title = {'text': 'time'}
         ),
         yaxis = dict(
+            range = [1.05*min(H), 1.05*max(H)],
             title = {'text': Htype}
         ),
         margin=dict(l=20, r=20, t=20, b=80),
@@ -426,7 +427,6 @@ def remake_effective_potential(angmom_str, energy_str):
         Output('stored-orbit', 'data'),
     ],
     [
-        Input('recalculate-button', 'n_clicks'),
         Input('stored-energy', 'data')
     ],
     [
@@ -434,7 +434,7 @@ def remake_effective_potential(angmom_str, energy_str):
         State('angmom-val-str', 'value'),        
     ],
 )
-def recalculate_orbit(n_clicks, energy, energy_str, angmom_str):
+def recalculate_orbit(energy, energy_str, angmom_str):
     # The input energy and angular momentum values should
     # always be valid, because if a user entry is not valid,
     # the remake_effective_potential() callback will adjust
