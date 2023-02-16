@@ -72,6 +72,7 @@ M = 1
 #--- orbit graph
 #
 default_orbit_resolution = 1000
+print_out_data = False # This should usually be false... will print out each orbit
 #
 #--- effective potential graph
 #
@@ -466,6 +467,15 @@ def recalculate_gw(orbit_data):
     gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi)
     stored_data = dict(t = t, plus = Hp, cross = Hc,
                        resolution=default_orbit_resolution)
+    # output the data to user (this should usually be turned off!)
+    if print_out_data:
+        print("################################")
+        print("# orbit and GW data for:")
+        print("#    E =", E, "l =", ell)
+        print("################################")
+        print("# t  r(t)  phi(t)  Hplus(t)  Hcross(t)")
+        for i in range(len(t)):
+            print(t[i], r_t[i], phi_t[i], Hp[i], Hc[i])    
     return gw_plus_fig, gw_cross_fig, stored_data
 
 ###############################
