@@ -374,7 +374,6 @@ app.clientside_callback(
         State('stored-gw-data', 'data'),        
     ]
 )
-
 #
 #--- callback to re-make the effective potential plot
 #
@@ -386,6 +385,7 @@ app.clientside_callback(
         Output('angmom-val-str', 'value'),
         Output('energy-val-str', 'value'),
         Output('stored-energy', 'data'),
+        Output('stored-angmom', 'data'),        
     ],
     [
         Input('angmom-val-str', 'value'),
@@ -419,7 +419,7 @@ def remake_effective_potential(angmom_str, energy_str):
     #      (and get new energy if found to be invalid)
     #
     effpot_fig, E = create_effective_potential_figure(ell, E)
-    return [effpot_fig, str(ell), str(E), E]
+    return [effpot_fig, str(ell), str(E), E, ell]
 
 #--- callback to re-calculate orbit, save new data set, and restart figures
 @app.callback(
@@ -458,9 +458,11 @@ def recalculate_orbit(energy, energy_str, angmom_str):
         Input('stored-orbit', 'data'),
     ],
     [
+        State('stored-energy', 'data'),
+        State('stored-angmom', 'data'),        
     ],
 )
-def recalculate_gw(orbit_data):
+def recalculate_gw(orbit_data, E, ell):
     t = orbit_data['t']
     r = orbit_data['r']
     phi = orbit_data['phi']
