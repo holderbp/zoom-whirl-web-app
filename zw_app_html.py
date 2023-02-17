@@ -167,7 +167,7 @@ def make_dashboard_webpage(
             dbc.Row([
                 dbc.Card(
                     [
-                        dbc.CardHeader("Gravitational Wave Signal (for m/M = 1/1000000)"),
+                        dbc.CardHeader("Gravitational Wave Signal (for m/M = 1/100000)"),
                         dbc.CardBody(
                             [
                                 dcc.Graph(
