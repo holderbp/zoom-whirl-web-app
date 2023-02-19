@@ -187,7 +187,7 @@ def makefig_effpot(r, V, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     fig.update_layout(
         #title_text = 'Effective Potential',
         xaxis = dict(range = [win_rmin, win_rmax],
-                     title = {'text': 'Radius'}),
+                     title = {'text': 'Radius/M'}),
         yaxis = dict(range = [win_Vmin, win_Vmax],
                      title = {'text': 'Veff'}),
         margin=dict(l=20, r=20, t=20, b=80),
@@ -221,7 +221,7 @@ def makefig_gw(t, H, Htype):
     fig.update_layout(
         xaxis = dict(
             range = [0, t[-1]],
-            title = {'text': 'time'}
+            title = {'text': 'Proper-Time/M'}
         ),
         yaxis = dict(
             range = [1.05*min(H), 1.05*max(H)],

@@ -122,7 +122,15 @@ def make_dashboard_webpage(
                                         size = '7',
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 20,
+                                            'margin-right': 5,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
+                                    html.Div(
+                                        children=" M",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 25,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -148,7 +156,7 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                     html.Div(
-                                        children="(\"Natural\" units, with G=c=M=1)",
+                                        children="(\"Geometrized\" units, with G=c=1)",
                                         style={
                                             'display': 'inline-block',
                                             'font-size' : effpot_fontsize_small,
