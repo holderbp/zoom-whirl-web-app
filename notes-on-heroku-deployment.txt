@@ -1,4 +1,29 @@
 
+
+2022-12-06 BPH
+
+I discovered that the app wasn't working. It said to check the logs. Heroku has now shut down all "free" dynos (I think because they are now owned by SalesForce), so I had to get a $5/month "Eco" subscription to heroku.  I restarted my app and then I saw this error in logs (ran "heroku logs"):
+
+2022-12-06T15:38:39.419718+00:00 heroku[router]: at=error code=H14 desc="No web processes running" method=GET path="/favicon.ico" host=zoomwhirl.herokuapp.com request_id=2551f0f9-e095-440d-a538-eefc97f6d281 fwd="68.61.39.96" dyno= connect= service= status=503 bytes= protocol=https
+
+According to this page:
+
+https://devcenter.heroku.com/articles/error-codes#h14-no-web-dynos-running
+
+This is because I don't have any web "dynos" running (whatever that means).  So I did this:
+
+❯ heroku ps:scale web=1
+Scaling dynos... done, now running web at 1:Eco
+
+Now the app is up and running again.
+
+2022-12-06 BPH
+
+They are now requiring two-factor authentication, so I downloaded the Google Authenticator app and it will provide me with a single-use password every time I login to heroku.
+
+I also downloaded some temporary recovery codes, in case my app stops working or something. See file in this directory
+
+
 2022-10-16 BPH
 
 I added the app to my heroku server:

@@ -77,11 +77,11 @@ print_out_data = False # This should usually be false... will print out each orb
 #--- effective potential graph
 #
 # Npoints, and min and max values for making graph
-Npoints_r = 1000
+Npoints_r = 10000
 rmin = 0.1
-rmax = 100
+rmax = 1000
 # max allowed ang momentum value
-ell_max = 4.5
+ell_max = 100
 # for choosing an energy just below Vmax
 energy_frac_of_Vmax = 0.9
 # starting values
@@ -151,6 +151,37 @@ def create_orbit_figure(ell, E):
     # return the figure and the data
     return fig, t, r_t, phi_t
 
+def get_ecc_periap(ell, E):
+    zwoc.G = G
+    zwoc.M = M
+    zwoc.ell = ell
+    zwoc.E = E
+    # find the positions two circular orbits (inner-unstable, outer-stable)
+    r_inner, r_outer = zwoc.get_Veff_maxmin_r_values()
+    Vmin = zwoc.Veff(r_outer)
+    Vmax = zwoc.Veff(r_inner)
+    deltaV = Vmax-Vmin
+    #
+    #--- check the energy value to make sure it is valid
+    #
+    if E < Vmin:
+        # just set to Vmin (stable circular orbit)
+        E = Vmin
+        zwoc.E = E
+    elif E > Vmax:
+        # forbid plunging orbits and hyperbolic orbits...
+        # set to just below peak or just below zero
+        #
+        # FIXME: allow hyperbolic/plunging?
+        #
+        E1 = energy_frac_of_Vmax*deltaV + Vmin
+        E2 = energy_frac_of_Vmax*(0 - Vmin) + Vmin
+        E = min(E1, E2)
+        zwoc.E = E
+    rp, ra = zwoc.get_peri_and_apoapsis()
+    ecc = zwoc.get_eccentricity(rp, ra)
+    return [ecc, rp, E]
+
 def get_number_from_string(valstr):
     try:
         val = float(valstr)
@@ -158,12 +189,22 @@ def get_number_from_string(valstr):
     except ValueError:
         return None
 
-def angmom_is_valid(L):
-    # Disallow cases where there are no bound orbits
-    if ( (L**2 > 12*(G*M)**2) & (L < ell_max) ):
-        return True
-    else:
-        return False
+def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=False):
+    ell = get_number_from_string(angmom_str)
+    E = get_number_from_string(energy_str)
+    ecc = get_number_from_string(ecc_str)
+    periap = get_number_from_string(periap_str)
+    # check validity
+    if checkvalid:
+        if ( (ell**2 < 12*(G*M)**2) | (ell > ell_max) ):
+            ell = None
+        if (E > 0):
+            E = None
+        if ( (ecc < 0) | (ecc >= 1) ):
+            ecc = None
+        if (periap < 4*G*M):
+            periap = None
+    return [ell, E, ecc, periap]
 
 def makefig_effpot(r, V, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     # make the plotly figure object
@@ -257,6 +298,9 @@ def create_effective_potential_figure(ell, E):
     r_inner, r_outer = zwoc.get_Veff_maxmin_r_values()
     Vmin = zwoc.Veff(r_outer)
     Vmax = zwoc.Veff(r_inner)
+    # find other radius where Veff = Vmax
+    if (ell < 4*G*M):
+        rwell = zwoc.get_rwell(Vmax)
     deltaV = Vmax-Vmin
     #
     #--- check the energy value to make sure it is valid
@@ -284,7 +328,10 @@ def create_effective_potential_figure(ell, E):
     #
     plot_rmin = 0
     #plot_rmax = 2*r_outer # rmax is twice circular orbit?
-    plot_rmax = 1.02*ra # rmax is apoapsis?
+    if (zwoc.ell < 4*G*M):
+        plot_rmax =1.02*rwell
+    else:
+        plot_rmax = 1.02*ra # rmax is apoapsis?
     plot_Vmin = Vmin - deltaV*0.2
     plot_Vmax = Vmax + deltaV*0.2
     #
@@ -394,52 +441,81 @@ app.clientside_callback(
 #
 #--- callback to re-make the effective potential plot
 #
-#     (triggered by any change to parameters: E, ell, e, rp)
+#     (triggered by any change to parameters (E, ell, e, rp),
+#      or pressing the default button
 #
 @app.callback(
     [
         Output('potentialgraph', 'figure'),
         Output('angmom-val-str', 'value'),
         Output('energy-val-str', 'value'),
-        Output('stored-energy', 'data'),
-        Output('stored-angmom', 'data'),        
+        Output('ecc-val-str', 'value'),
+        Output('periap-val-str', 'value'),
+        Output('stored-angmom', 'data'),
+        Output('stored-energy', 'data'),        
+        Output('stored-ecc', 'data'),
+        Output('stored-periap', 'data'),        
     ],
     [
         Input('angmom-val-str', 'value'),
         Input('energy-val-str', 'value'),
+        Input('ecc-val-str', 'value'),
+        Input('periap-val-str', 'value'),
+        Input('default-button', 'n_clicks'),
     ],
     [
+        State('stored-angmom', 'data'),
+        State('stored-energy', 'data'),
+        State('stored-ecc', 'data'),
+        State('stored-periap', 'data'),                
     ],
 )
-def remake_effective_potential(angmom_str, energy_str):
-    ell = get_number_from_string(angmom_str)
-    E = get_number_from_string(energy_str)
-    #
-    #--- If either of these strings are not valid numbers
-    #    revert to default values and make original figure
-    #
-    #--- Do the same if the angular momentum falls outside
-    #    the allowed range
-    #
-    #--- Note: If  Vmin < E < Vmax, the energy will be
-    #          adjusted in the effective potential creation.
-    #
-    if ( (ell is None) | (E is None)
-         | (not angmom_is_valid(ell)) ):
-        ell = get_number_from_string(default_angmom_str)
-        E = get_number_from_string(default_energy_str)        
+def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
+                               n_clicks, ell_old, E_old, ecc_old, periap_old):
+    # convert input strings to numbers (and check for invalid/erroneous)
+    [ell_new, E_new, ecc_new, periap_new] = \
+        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
+    # get trigger to see which change was made
+    trigger = dash.callback_context.triggered[0]
+    if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
         #
-        # FIXME:
+        # invalid/erroneous input -> revert to current values
         #
-        #   * should probably have an Alert signal to user here,
-        #     explaining why their update failed
+        ell = ell_old
+        E = E_old
+        ecc = ecc_old
+        periap = periap_old
+    elif ('default-button' in trigger['prop_id']):
         #
+        # Default button pushed -> revert to default values
+        [ell, E, ecc, periap] = \
+            get_all_values_from_strings(default_angmom_str, default_energy_str,
+                                        default_ecc_str, default_periap_str)
+    elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
+           | ('.' in trigger['prop_id']) ):
+           #
+           # ang-mom/energy changed (or first run) -> check that E is valid 
+           #
+           ell = ell_new
+           E = E_new
+           # get eccentricity and periapsis, adjusting energy if necessary
+           [ecc, periap, E] = get_ecc_periap(ell, E)
+    elif ('ecc' in  trigger['prop_id']):
+        ell = ell_old
+        E = E_old
+        ecc = ecc_old
+        periap = periap_old
+    elif ('periap' in  trigger['prop_id']):
+        ell = ell_old
+        E = E_old
+        ecc = ecc_old
+        periap = periap_old
     #
-    #--- otherwise calculate the new effective potential using ell
-    #      (and get new energy if found to be invalid)
+    #--- Create the effective potential figure and proceed...
     #
     effpot_fig, E = create_effective_potential_figure(ell, E)
-    return [effpot_fig, str(ell), str(E), E, ell]
+    return [effpot_fig, str(ell), str(E), str(ecc), str(periap),
+            ell, E, ecc, periap]
 
 #
 #--- callback to re-calculate orbit, save new data set, and restart figures
@@ -455,17 +531,19 @@ def remake_effective_potential(angmom_str, energy_str):
         Input('stored-energy', 'data')
     ],
     [
-        State('energy-val-str', 'value'),
         State('angmom-val-str', 'value'),        
+        State('energy-val-str', 'value'),
+        State('ecc-val-str', 'value'),
+        State('periap-val-str', 'value'),        
     ],
 )
-def recalculate_orbit(energy, energy_str, angmom_str):
+def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str):
     # The input energy and angular momentum values should
     # always be valid, because if a user entry is not valid,
     # the remake_effective_potential() callback will adjust
-    # them to their (valid) default values.
-    ell = get_number_from_string(angmom_str)
-    E = get_number_from_string(energy_str)
+    # them to their (valid) default values.    
+    [ell, E, ecc, periap] = \
+        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str)
     fig_orb, t, r_t, phi_t = create_orbit_figure(ell, E)
     stored_data = dict(t = t, r = r_t, phi = phi_t,
                        resolution=default_orbit_resolution)
@@ -488,9 +566,11 @@ def recalculate_orbit(energy, energy_str, angmom_str):
     [
         State('stored-energy', 'data'),
         State('stored-angmom', 'data'),        
+        State('stored-ecc', 'data'),
+        State('stored-periap', 'data'),        
     ],
 )
-def recalculate_gw(orbit_data, E, ell):
+def recalculate_gw(orbit_data, E, ell, ecc, periap):
     t = orbit_data['t']
     r = orbit_data['r']
     phi = orbit_data['phi']

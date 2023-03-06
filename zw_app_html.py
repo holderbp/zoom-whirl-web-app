@@ -57,12 +57,12 @@ def make_dashboard_webpage(
                       #data=init_orbit_data,                      
                       clear_data=False,
                       modified_timestamp=-1),
-            dcc.Store(id='stored-energy',
+            dcc.Store(id='stored-angmom',
                       storage_type='memory',
                       data=0,
                       clear_data=False,
                       modified_timestamp=-1),
-            dcc.Store(id='stored-angmom',
+            dcc.Store(id='stored-energy',
                       storage_type='memory',
                       data=0,
                       clear_data=False,
@@ -117,7 +117,7 @@ def make_dashboard_webpage(
                           },
                           children=[ 
                     html.Div( style={'float': 'left'}, children=[
-                        html.H3("\"Zoom-Whirl\" Orbits and their gravitational waves"),
+                        html.H3("\"Zoom-Whirl\" orbits and their gravitational waves"),
                         html.H4("Exploring the geodesics of the Schwarzschild metric")
                         ]),
                     html.Div( style={'float': 'right'}, children=[
@@ -230,14 +230,6 @@ def make_dashboard_webpage(
                                                        'margin-right': 10,
                                                        'margin-bottom': '10px',
                                                    }),
-                                        html.Div(
-                                            children="4 M < ",
-                                            style={
-                                                'display': 'inline-block',
-                                                'margin-right': 10,
-                                                'font-size' : effpot_fontsize,
-                                            }
-                                        ),
                                         dcc.Input(
                                             id='periap-val-str', type='text',
                                             value = default_periap_str,
@@ -252,7 +244,7 @@ def make_dashboard_webpage(
                                             }
                                         ),
                                         html.Div(
-                                            children=" M < 6 M",
+                                            children=" > 4 M",
                                             style={
                                                 'display': 'inline-block',
                                                 'margin-left': 5,
@@ -260,7 +252,7 @@ def make_dashboard_webpage(
                                             }
                                         ),
                                     ]),
-                                    html.P("\"Geometrized\" units are used (G=c=1). Only bound orbits are allowed, meaning: angular momentum greater than √12 M and energy less than the maximum of the effective potential.",
+                                    html.P("Units are \"geometrized\" (G=c=1). Only bound orbits are allowed.",
                                         style={
                                             #'display': 'inline-block',
                                             'font-size' : effpot_fontsize_small,
@@ -305,21 +297,18 @@ def make_dashboard_webpage(
                                     'margin-top': '10px',
                                     'border': '2px lightgrey solid',
                                                  }, children=[
+                                    html.Button('revert to default', id='default-button', n_clicks=0,
+                                                style ={
+                                                    'font-size' : effpot_fontsize_small,
+                                                }),
                                     html.Div(
                                         children="Angular Momentum:",
                                         style={
                                             'display': 'inline-block',
+                                            'margin-left': 15,
                                             'margin-right': 10,
                                             'margin-top': 10,
                                             'margin-bottom': 10,
-                                            'font-size' : effpot_fontsize,
-                                        }
-                                    ),
-                                    html.Div(
-                                        children="3.464 M < ",
-                                        style={
-                                            'display': 'inline-block',
-                                            'margin-right': 5,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -337,10 +326,10 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                     html.Div(
-                                        children=" M < 4.5 M",
+                                        children=" M > 3.464 M",
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 50,
+                                            'margin-right': 30,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -366,7 +355,7 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                 ]),
-                                html.Div(children="Hint: First try to adjust energy value. Adjusting angular momentum changes the Veff function.",
+                                html.Div(children="Hints: First try adjusting energy; adjusting angular momentum changes the Veff function.",
                                         style={
                                             'font-size' : effpot_fontsize_small,
                                             'font-weight': 'bold',

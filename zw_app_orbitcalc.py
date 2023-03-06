@@ -60,6 +60,18 @@ def get_peri_and_apoapsis():
     # then bisect with very large value
     ra = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True)
     return rp, ra
+
+def get_rwell(Vpeak):
+    global E
+    if ( (ell > 4) | (ell**2 < 12*(G*M)**2) ):
+        return None
+    else:
+        Eold = E
+        E = Vpeak
+        [IUCO, ISCO] = get_Veff_maxmin_r_values()
+        rwell = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True)
+        E = Eold
+        return rwell
     
 def get_eccentricity(rp, ra):
     return (ra - rp) / (rp + ra)
