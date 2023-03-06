@@ -13,7 +13,7 @@ m = M/100000
 ti = 0
 tf = 1000
 Ntsteps = 1001
-very_large_r = 10000
+very_large_r = 100000
 
 # create potential graph data
 def Veff(r, getderiv=False):
@@ -90,15 +90,21 @@ def get_orbit():
     sol = spi.solve_ivp(derivs, [ti, tf], X0, t_eval = evaltimes,
                         rtol = 1e-8, atol = 1e-8,
                         events = apoapsis_event)
+    #
     # grab apoapsis
-    try:
-        ra = sol.y_events[0][0][0]
-        # calculate eccentricity
-        ecc = get_eccentricity(rp, ra)
-    except:
-        # apoapsis not reached
-        ra = None
-        ecc = None
+    #
+    #  Fixme: not sure why this is here, can get from (rp, ra) above?
+    #
+    # try:
+    #     ra = sol.y_events[0][0][0]
+    #     # calculate eccentricity
+    #     ecc = get_eccentricity(rp, ra)
+    # except:
+    #     # apoapsis not reached
+    #     ra = None
+    #     ecc = None
+    # get eccentricity
+    ecc = get_eccentricity(rp, ra)
     # grab solution vectors
     [r_t, vr_t, phi_t] = sol.y
     # and return all info

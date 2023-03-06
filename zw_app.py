@@ -81,12 +81,14 @@ Npoints_r = 1000
 rmin = 0.1
 rmax = 100
 # max allowed ang momentum value
-ell_max = 10.0
+ell_max = 4.5
 # for choosing an energy just below Vmax
 energy_frac_of_Vmax = 0.9
 # starting values
 default_angmom_str = "3.7" # "4.0"
-default_energy_str = "-0.0355" # "-0.03"
+default_energy_str = "-0.03445" # "-0.03"
+default_ecc_str = "0.633223" # 
+default_periap_str = "4.52351" #
 
 ###############################
 #       helper functions      #
@@ -133,7 +135,7 @@ def makefig_orbit(orb_r, orb_phi, ra):
                 #showticklabels=False, ticks=''
             )
         ),
-        margin=dict(l=20, r=20, t=20, b=20),
+        margin=dict(l=35, r=10, t=10, b=10),
         showlegend=False,
     )
     return fig
@@ -190,7 +192,7 @@ def makefig_effpot(r, V, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
                      title = {'text': 'Radius/M'}),
         yaxis = dict(range = [win_Vmin, win_Vmax],
                      title = {'text': 'Veff'}),
-        margin=dict(l=20, r=20, t=20, b=80),
+        margin=dict(l=10, r=10, t=10, b=10),
         showlegend=False,        
     )
     return fig
@@ -227,7 +229,7 @@ def makefig_gw(t, H, Htype):
             range = [1.05*min(H), 1.05*max(H)],
             title = {'text': Htype}
         ),
-        margin=dict(l=20, r=20, t=20, b=80),
+        margin=dict(l=20, r=20, t=20, b=20),
         showlegend=False,        
     )
     return fig
@@ -310,6 +312,21 @@ def display_page(pathname):
     if (pathname == "/"):
         return initial_dashboard_page
 
+#--- callback to open modal info window
+@app.callback(
+    Output("modal", "is_open"),
+    [
+        Input("open", "n_clicks"),
+        Input("close", "n_clicks")
+    ],
+    [
+        State("modal", "is_open")
+    ],
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
 
 #--- client-side callback to "evolve" data
 # javascript function within the clientside callback comment
@@ -356,7 +373,7 @@ app.clientside_callback(
           end
        ]
     }
-    """,
+    """, 
     [
         Output('orbitgraph', 'extendData'),
         Output('potentialgraph', 'extendData'),
@@ -377,7 +394,7 @@ app.clientside_callback(
 #
 #--- callback to re-make the effective potential plot
 #
-#     (whenever angular momentum and E are adjusted)
+#     (triggered by any change to parameters: E, ell, e, rp)
 #
 @app.callback(
     [
@@ -404,6 +421,9 @@ def remake_effective_potential(angmom_str, energy_str):
     #--- Do the same if the angular momentum falls outside
     #    the allowed range
     #
+    #--- Note: If  Vmin < E < Vmax, the energy will be
+    #          adjusted in the effective potential creation.
+    #
     if ( (ell is None) | (E is None)
          | (not angmom_is_valid(ell)) ):
         ell = get_number_from_string(default_angmom_str)
@@ -421,7 +441,11 @@ def remake_effective_potential(angmom_str, energy_str):
     effpot_fig, E = create_effective_potential_figure(ell, E)
     return [effpot_fig, str(ell), str(E), E, ell]
 
+#
 #--- callback to re-calculate orbit, save new data set, and restart figures
+#
+#    (triggered by stored-energy from "remake_effective_potential" callback)
+#
 @app.callback(
     [
         Output('orbitgraph', 'figure'),
@@ -447,7 +471,11 @@ def recalculate_orbit(energy, energy_str, angmom_str):
                        resolution=default_orbit_resolution)
     return fig_orb, stored_data
 
+#
 #--- callback to re-calculate gravitational wave data on orbit update
+#
+#    (triggered by stored-orbit from "recalculate_orbit" callback)
+#
 @app.callback(
     [
         Output('gw_plus_graph', 'figure'),
@@ -509,7 +537,9 @@ initial_dashboard_page = zwah.make_dashboard_webpage(
     init_orbit_fig, init_orbit_data, init_pot_fig,
     init_gw_cross_fig, init_gw_plus_fig, init_gw_data,
     default_angmom_str,
-    default_energy_str
+    default_energy_str,
+    default_ecc_str,
+    default_periap_str,    
     )
 
 # run the app

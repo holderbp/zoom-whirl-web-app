@@ -5,7 +5,8 @@ import dash_bootstrap_components as dbc
 effpot_fontsize = '10pt'
 effpot_fontsize_small = '8pt'
 
-height_firstrow = '55vh'
+height_header = '5vh'
+height_firstrow = '50vh'
 height_secondrow = '35vh'
 height_secondrow_card = '45vh'
 
@@ -19,19 +20,32 @@ def make_dashboard_webpage(
         init_gw_data,
         default_angmom_str,
         default_energy_str,
+        default_ecc_str,
+        default_periap_str,        
 ):
     dashboard_page = html.Div(
         children=[
             #
             #=== These apply to all rows & columns
             #
-            # Interval for continuous clientside update: animation
+            # Intervals:
+            #
+            #    orbit-interval: for continuous clientside update (animation)
+            # 
             dcc.Interval(id="orbit-interval",
                          interval=20, # microseconds
                          disabled=False,
                          n_intervals=0,
                          max_intervals=-1),
-            # two client-stored json data sets: offset and (x,y) data
+            #
+            # Stores: client-stored json data sets:
+            #
+            #     offset
+            #     orbit plot data
+            #     energy value
+            #     ang momentum value
+            #     grav wave plot data
+            #
             dcc.Store(id='stored-offset',
                       storage_type='memory',
                       data=0,
@@ -53,6 +67,16 @@ def make_dashboard_webpage(
                       data=0,
                       clear_data=False,
                       modified_timestamp=-1),
+            dcc.Store(id='stored-ecc',
+                      storage_type='memory',
+                      data=0,
+                      clear_data=False,
+                      modified_timestamp=-1),
+            dcc.Store(id='stored-periap',
+                      storage_type='memory',
+                      data=0,
+                      clear_data=False,
+                      modified_timestamp=-1),
             dcc.Store(id='stored-gw-data',
                       storage_type='memory',
                       data=0,
@@ -60,56 +84,242 @@ def make_dashboard_webpage(
                       clear_data=False,
                       modified_timestamp=-1),
             #
-            #=== First Row
+            #=== Modal (information pop-up window)
             #
-            html.H3(
-                children = "Schwarzschild geodesics for exploring \"Zoom-Whirl\" Orbits and their gravitational waves",
-                style = {
-                    'textAlign': 'center'
-                },
-            ),
+            # modal = html.Div(
+            #     [
+            #         dbc.Button("Open modal", id="open", n_clicks=0),
+            #         dbc.Modal(
+            #             [
+            #                 dbc.ModalHeader(dbc.ModalTitle("Header")),
+            #                 dbc.ModalBody("This is the content of the modal"),
+            #                 dbc.ModalFooter(
+            #                     dbc.Button(
+            #                         "Close", id="close", className="ms-auto", n_clicks=0
+            #                     )
+            #                 ),
+            #             ],
+            #             id="modal",
+            #             is_open=False,
+            #         ),
+            #     ]
+            # )
+            #
+            #=== Header: Title, Information button, logos
+            #
+            html.Div( style = {'display': 'flex'}, children=[
+                html.Div( style =
+                          {
+                              'width': '100%',
+                              'margin-left': 25,
+                              'margin-top': 10,
+                              'margin-right': 10
+                          },
+                          children=[ 
+                    html.Div( style={'float': 'left'}, children=[
+                        html.H3("\"Zoom-Whirl\" Orbits and their gravitational waves"),
+                        html.H4("Exploring the geodesics of the Schwarzschild metric")
+                        ]),
+                    html.Div( style={'float': 'right'}, children=[
+                        html.A(
+                            html.Img(
+                                src="assets/northwestern-ciera.png",
+                                style = {'float': 'right', 'height': '35px', 'margin-top': '20px'}
+                            ),
+                            href="https://ciera.northwestern.edu"),
+                        html.A(
+                            html.Img(
+                                src="assets/gvsu.png",
+                                style = {'float': 'right', 'height': '35px', 'margin-top': '20px',
+                                         'margin-right': '20px'}
+                            ),
+                            href="https://www.gvsu.edu/physics/"),
+                        ]),
+                    ]),
+                ]),
             #
             #=== First Row
             #
             dbc.Row([
-                dbc.CardGroup(
-                    [
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("Orbit"),
-                                dbc.CardBody([
-                                    dcc.Graph(
-                                        id='orbitgraph',
-                                        figure=init_orbit_fig,
+                dbc.CardGroup(style = {'height' : height_firstrow}, children=[
+                    dbc.Card([
+                        dbc.CardHeader("Orbit"),
+                        dbc.Row(style={'height': '100%'}, children=[
+                            dbc.Col(width=5, style={'margin-left': '20px'}, children=[
+                                html.Div( children=[
+                                    html.Br(),
+                                    html.P("To generate a new orbit, specify:",
+                                           style={
+                                               'font-size': effpot_fontsize,
+                                               'font-weight': 'bold',
+                                               'color': '#636EFA',
+                                               'margin-bottom': '5px',
+                                           }),
+                                    html.P("[Angular Momentum, Energy]",
+                                           style={
+                                               'margin-left': '25px',
+                                               'font-size': effpot_fontsize,
+                                               'margin-bottom': '5px',
+                                               'margin-top': '5px',                                                                                          }),
+                                    html.P("or:",
+                                           style={
+                                               'font-size': effpot_fontsize,
+                                               'font-weight': 'bold',          
+                                               'color': '#636EFA',
+                                               'margin-bottom': '5px',
+                                               'margin-top': '5px',
+                                           }),
+                                    html.P("[Eccentricity, Periapsis]",
+                                           style={
+                                               'margin-left': '25px',
+                                               'font-size': effpot_fontsize,
+                                               'margin-bottom': '5px',
+                                               'margin-top': '5px',
+                                           }),
+                                    html.P("Orbits with energy near the peak of the effective potential are ZW-type.",
+                                           style={
+                                               'font-size': effpot_fontsize,
+                                               'font-weight': 'bold',
+                                               'color': '#636EFA',
+                                               'margin-bottom': '10px',
+                                               'margin-top': '5px',
+                                           }),
+                                    html.Div(style={
+                                        'textAlign': 'center',
+                                        'border': '2px lightgrey solid',
+                                    }, children=[
+                                        html.Label("Eccentricity: ",
+                                                   style={
+                                                       'font-size': effpot_fontsize,
+                                                       'margin-top': '10px',
+                                                       'margin-right': 10,
+                                                   }),
+                                        html.Div(
+                                            children="0 ≤",
+                                            style={
+                                                'display': 'inline-block',
+                                                'margin-right': 5,
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),                                        
+                                        dcc.Input(
+                                            id='ecc-val-str', type='text',
+                                            value = default_ecc_str,
+                                            placeholder = default_ecc_str,
+                                            # don't allow update until user enters
+                                            debounce = True,
+                                            size = '7',
+                                            style={
+                                                'display': 'inline-block',
+                                                'margin-right': 5,
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),
+                                        html.Div(
+                                            children=" < 1",
+                                            style={
+                                                'display': 'inline-block',
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),                                        
+                                        html.Br(),
+                                        html.Label("Periapsis: ",
+                                                   style={
+                                                       'font-size': effpot_fontsize,
+                                                       'margin-top': '10px',
+                                                       'margin-right': 10,
+                                                       'margin-bottom': '10px',
+                                                   }),
+                                        html.Div(
+                                            children="4 M < ",
+                                            style={
+                                                'display': 'inline-block',
+                                                'margin-right': 10,
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),
+                                        dcc.Input(
+                                            id='periap-val-str', type='text',
+                                            value = default_periap_str,
+                                            placeholder = default_periap_str,
+                                            # don't allow update until user enters
+                                            debounce = True,
+                                            size = '7',
+                                            style={
+                                                'display': 'inline-block',
+                                                'margin-right': 2,
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),
+                                        html.Div(
+                                            children=" M < 6 M",
+                                            style={
+                                                'display': 'inline-block',
+                                                'margin-left': 5,
+                                                'font-size' : effpot_fontsize,
+                                            }
+                                        ),
+                                    ]),
+                                    html.P("\"Geometrized\" units are used (G=c=1). Only bound orbits are allowed, meaning: angular momentum greater than √12 M and energy less than the maximum of the effective potential.",
                                         style={
-                                            'height': '90%',
-                                        },
-                                        config={
-                                            'displayModeBar': False,
+                                            #'display': 'inline-block',
+                                            'font-size' : effpot_fontsize_small,
+                                            'margin-top' : '10px',
                                         }
-                                    )
+                                    ),                              
                                 ]),
-                            ],
-                        ),
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("Effective Potential"),
-                                dbc.CardBody([
-                                    dcc.Graph(
-                                        id='potentialgraph',
-                                        figure=init_pot_fig,
-                                        style={
-                                            'height': '85%',
-                                        },
-                                        config={
-                                            'displayModeBar': False,
-                                        }
-                                    ),
+                            ]),
+                            dbc.Col(width=6, children=[
+                                dcc.Graph(
+                                    id='orbitgraph',
+                                    figure=init_orbit_fig,
+                                    style={
+                                        'height': '95%',
+                                        'margin-right': '10px',
+                                        'margin-left': '10px',
+                                        #'float': 'right'
+                                    },
+                                    config={
+                                        'displayModeBar': False,
+                                    }
+                                )
+                            ]),
+                        ]),
+                    ]),
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Effective Potential"),
+                            dbc.CardBody([
+                                dcc.Graph(
+                                    id='potentialgraph',
+                                    figure=init_pot_fig,
+                                    style={
+                                        'height': '75%',
+                                    },
+                                    config={
+                                        'displayModeBar': False,
+                                    }
+                                ),
+                                html.Div( style={
+                                    'textAlign': 'center',
+                                    'margin-top': '10px',
+                                    'border': '2px lightgrey solid',
+                                                 }, children=[
                                     html.Div(
-                                        children="Angular Momentum: ",
+                                        children="Angular Momentum:",
                                         style={
                                             'display': 'inline-block',
                                             'margin-right': 10,
+                                            'margin-top': 10,
+                                            'margin-bottom': 10,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
+                                    html.Div(
+                                        children="3.464 M < ",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 5,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -127,10 +337,10 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                     html.Div(
-                                        children=" M",
+                                        children=" M < 4.5 M",
                                         style={
                                             'display': 'inline-block',
-                                            'margin-right': 25,
+                                            'margin-right': 50,
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
@@ -152,22 +362,24 @@ def make_dashboard_webpage(
                                         style={
                                             'display': 'inline-block',
                                             'font-size' : effpot_fontsize,
-                                            'margin-right': 10,
+                                            'margin-right': 5,
                                         }
                                     ),
-                                    html.Div(
-                                        children="(\"Geometrized\" units, with G=c=1)",
-                                        style={
-                                            'display': 'inline-block',
-                                            'font-size' : effpot_fontsize_small,
-                                        }
-                                    ),                                    
                                 ]),
-                            ],
-                        )
+                                html.Div(children="Hint: First try to adjust energy value. Adjusting angular momentum changes the Veff function.",
+                                        style={
+                                            'font-size' : effpot_fontsize_small,
+                                            'font-weight': 'bold',
+                                            'color': '#636EFA',
+                                            'margin-top' : '10px',
+                                        }
+                                    ),                              
+                                
+                            ]),
+                        ],
+                    )
                     ],
-                    style = {'height' : height_firstrow}
-                )     
+                )
             ]),
             #
             #=== Second Row
