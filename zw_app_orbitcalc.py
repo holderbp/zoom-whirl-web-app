@@ -22,6 +22,9 @@ def Veff(r, getderiv=False):
     else:
         return -G*M/r + ell**2/(2*r**2) - G*M*ell**2 / r**3
 
+def VNeff(r):
+    return -G*M/r + ell**2/(2*r**2)
+
 def Veff_minus_E(r):
     return Veff(r) - E
 
@@ -63,8 +66,15 @@ def get_peri_and_apoapsis():
 
 def get_rwell(Vpeak):
     global E
-    if ( (ell > 4) | (ell**2 < 12*(G*M)**2) ):
+    if (ell**2 < 12*(G*M)**2):
         return None
+    elif (ell > 4):
+        Eold = E
+        E = 0.0
+        [IUCO, ISCO] = get_Veff_maxmin_r_values()
+        rwell = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True)
+        E = Eold
+        return rwell
     else:
         Eold = E
         E = Vpeak

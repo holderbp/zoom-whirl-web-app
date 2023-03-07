@@ -77,11 +77,11 @@ print_out_data = False # This should usually be false... will print out each orb
 #--- effective potential graph
 #
 # Npoints, and min and max values for making graph
-Npoints_r = 10000
+Npoints_r = 20000
 rmin = 0.1
-rmax = 1000
+rmax = 3000
 # max allowed ang momentum value
-ell_max = 100
+ell_max = float(zwah.ell_max_str)
 # for choosing an energy just below Vmax
 energy_frac_of_Vmax = 0.9
 # starting values
@@ -151,7 +151,63 @@ def create_orbit_figure(ell, E):
     # return the figure and the data
     return fig, t, r_t, phi_t
 
-def get_ecc_periap(ell, E):
+def get_ell_E_and_check_pars(ecc, periap, version=None):
+    """
+    Convert (e, rp) -> (ell, E), and verify that the result is valid.
+    If the result is not valid, try to change either eccentricity or
+    periapsis slightly (whichever was not set by user) to make it so.
+    """
+    if version == 'ecc':
+        # check validity:
+        #     ell**2 > 0
+        rp = periap
+        while True:
+            if ( (1 + ecc) * rp <= (3 + ecc**2) ):
+                rp *= 1.05
+            else:
+                break
+        # check validity:
+        #    ell < ell_max   and   ell > sqrt(4)   and   E < 0
+        while True:
+            ell = (1 + ecc) * rp / np.sqrt( (1 + ecc) * rp - (3 + ecc**2) )
+            E = ( (1 - ecc) / (2 * rp) * (4 - (1 + ecc) * rp)
+                  / ( (1 + ecc) * rp - (3 + ecc**2) ) )
+            if ( ell > ell_max ):
+                # failure
+                rp = None
+                break
+            elif ( (ell**2 < 12) | (E > 0) ):
+                rp *=1.05
+            else:
+                break
+        periap = rp
+        return [ell, E, ecc, rp]
+    elif version == 'periap':
+        # check validity:
+        #     ell**2 > 0
+        e = ecc
+        while True:
+            if ( (1 + e) * periap <= (3 + e**2) ):
+                e += (1-e)/20
+            else:
+                break
+        # check validity:
+        #    ell < ell_max   and   ell > sqrt(4)   and   E < 0
+        while True:
+            ell = (1 + e) * periap / np.sqrt( (1 + e) * periap - (3 + e**2) )
+            E = ( (1 - e) / (2 * periap) * (4 - (1 + e) * periap)
+                  / ( (1 + e) * periap - (3 + e**2) ) )
+            if ( ell > ell_max ):
+                # failure
+                e = None
+                break
+            elif ( (ell**2 < 12) | (E > 0) ):
+                e += (1-e)/20
+            else:
+                break
+        return [ell, E, e, periap]
+
+def get_ecc_periap_and_check_E(ell, E):
     zwoc.G = G
     zwoc.M = M
     zwoc.ell = ell
@@ -178,6 +234,7 @@ def get_ecc_periap(ell, E):
         E2 = energy_frac_of_Vmax*(0 - Vmin) + Vmin
         E = min(E1, E2)
         zwoc.E = E
+    # get periapsis and apoapsis and calculate eccentricity
     rp, ra = zwoc.get_peri_and_apoapsis()
     ecc = zwoc.get_eccentricity(rp, ra)
     return [ecc, rp, E]
@@ -206,7 +263,7 @@ def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, che
             periap = None
     return [ell, E, ecc, periap]
 
-def makefig_effpot(r, V, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
+def makefig_effpot(r, V, VN, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     # make the plotly figure object
     fig = pgo.Figure()
     # effective potential graph
@@ -217,6 +274,12 @@ def makefig_effpot(r, V, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     fig.add_trace(
         pgo.Scatter(x=r, y=E*np.ones(len(r)), mode='lines')
     )
+    #
+    # Newtonian potential  (this doesn't work
+    #fig.add_trace(
+    #pgo.Scatter(x=r, y=VN)#, mode='lines')
+    #)
+    #
     # moving point on E line
     #  (empty.. will be filled by orbit eval of E)
     fig.add_trace(
@@ -294,14 +357,23 @@ def create_effective_potential_figure(ell, E):
     zwoc.E = E
     # calculate the potential
     V = zwoc.Veff(r)
+    # calculate the Newtonian potential (not used because plot didn't work yet)
+    VN = zwoc.VNeff(r)
     # find the positions two circular orbits (inner-unstable, outer-stable)
     r_inner, r_outer = zwoc.get_Veff_maxmin_r_values()
     Vmin = zwoc.Veff(r_outer)
     Vmax = zwoc.Veff(r_inner)
-    # find other radius where Veff = Vmax
-    if (ell < 4*G*M):
-        rwell = zwoc.get_rwell(Vmax)
     deltaV = Vmax-Vmin
+    # get info for nice plotting regions
+    if (ell < 4*G*M):
+        # find other radius where Veff = Vmax
+        rwell = zwoc.get_rwell(Vmax)
+    else:
+        # find zero-crossing point of Veff
+        zerocross = zwoc.get_rwell(Vmax)
+        rwellA = 0.95*zerocross
+        # set other one to rwellA plus 3 times dist to Vmin
+        rwellB = 10*(r_outer-zerocross) + rwellA
     #
     #--- check the energy value to make sure it is valid
     #
@@ -326,19 +398,24 @@ def create_effective_potential_figure(ell, E):
     #
     #--- set the plotted window
     #
-    plot_rmin = 0
     #plot_rmax = 2*r_outer # rmax is twice circular orbit?
     if (zwoc.ell < 4*G*M):
+        plot_rmin = 0.8*r_inner
         plot_rmax =1.02*rwell
+        plot_Vmin = Vmin - deltaV*0.2
+        plot_Vmax = Vmax + deltaV*0.2
     else:
-        plot_rmax = 1.02*ra # rmax is apoapsis?
-    plot_Vmin = Vmin - deltaV*0.2
-    plot_Vmax = Vmax + deltaV*0.2
+        plot_rmin = 0.98*rwellA
+        plot_rmax = 1.02*rwellB
+        plot_Vmin = -1.2*np.abs(Vmin)
+        plot_Vmax = 0.2*np.abs(Vmin)        
+        #plot_rmin = 0
+        #plot_rmax = 1.02*ra # rmax is apoapsis?
     #
     #--- create the figure
     #
     effpot_fig = makefig_effpot(
-        r, V, E, plot_rmin, plot_rmax, plot_Vmin, plot_Vmax
+        r, V, VN, E, plot_rmin, plot_rmax, plot_Vmin, plot_Vmax
         )
     return effpot_fig, E
     
@@ -475,6 +552,11 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
     # convert input strings to numbers (and check for invalid/erroneous)
     [ell_new, E_new, ecc_new, periap_new] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
+    #print("--- input values:")
+    #print("ell =", ell_new)
+    #print("E =", E_new)          
+    #print("ecc =", ecc_new)
+    #print("periap =", periap_new)          
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
@@ -488,28 +570,42 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
     elif ('default-button' in trigger['prop_id']):
         #
         # Default button pushed -> revert to default values
+        #
         [ell, E, ecc, periap] = \
             get_all_values_from_strings(default_angmom_str, default_energy_str,
                                         default_ecc_str, default_periap_str)
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
-           | ('.' in trigger['prop_id']) ):
+           | (trigger['prop_id'] == '.') ):
            #
-           # ang-mom/energy changed (or first run) -> check that E is valid 
+           # ang-mom/energy changed (or first run)
            #
            ell = ell_new
            E = E_new
            # get eccentricity and periapsis, adjusting energy if necessary
-           [ecc, periap, E] = get_ecc_periap(ell, E)
+           [ecc, periap, E] = get_ecc_periap_and_check_E(ell, E)
     elif ('ecc' in  trigger['prop_id']):
-        ell = ell_old
-        E = E_old
-        ecc = ecc_old
-        periap = periap_old
+        ecc = ecc_new
+        periap = periap_new
+        [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='ecc')
+        if (None in [ell, E, ecc, periap]):
+            ell = ell_old
+            E = E_old
+            ecc = ecc_old
+            periap = periap_old
     elif ('periap' in  trigger['prop_id']):
-        ell = ell_old
-        E = E_old
-        ecc = ecc_old
-        periap = periap_old
+        ecc = ecc_new
+        periap = periap_new
+        [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='periap')
+        if (None in [ell, E, ecc, periap]):
+            ell = ell_old
+            E = E_old
+            ecc = ecc_old
+            periap = periap_old
+    #print("--- output values:")
+    #print("ell =", ell)
+    #print("E =", E)          
+    #print("ecc =", ecc)
+    #print("periap =", periap)
     #
     #--- Create the effective potential figure and proceed...
     #

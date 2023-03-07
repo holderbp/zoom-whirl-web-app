@@ -10,6 +10,10 @@ height_firstrow = '50vh'
 height_secondrow = '35vh'
 height_secondrow_card = '45vh'
 
+# max allowed angular momentum 
+ell_max_str = "20" # M (converted to float and used by the app)
+
+
 ###############################
 #   dashboard webpage setup   #
 ###############################
@@ -252,7 +256,12 @@ def make_dashboard_webpage(
                                             }
                                         ),
                                     ]),
-                                    html.P("Units are \"geometrized\" (G=c=1). Only bound orbits are allowed.",
+                                    html.P("Units are \"geometrized\" (G=c=1)."
+                                           + " Only bound orbits are allowed."
+                                           + " Upper limit on angular momentum, "
+                                           + ell_max_str + " M,"
+                                           + " is for computational efficiency; all"
+                                           + " other limits are physical.",
                                         style={
                                             #'display': 'inline-block',
                                             'font-size' : effpot_fontsize_small,
@@ -312,6 +321,14 @@ def make_dashboard_webpage(
                                             'font-size' : effpot_fontsize,
                                         }
                                     ),
+                                    html.Div(
+                                        children= "3.464 M < ",
+                                        style={
+                                            'display': 'inline-block',
+                                            'margin-right': 5,
+                                            'font-size' : effpot_fontsize,
+                                        }
+                                    ),
                                     dcc.Input(
                                         id='angmom-val-str', type='text',
                                         value = default_angmom_str,
@@ -326,7 +343,7 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                     html.Div(
-                                        children=" M > 3.464 M",
+                                        children=" < " + ell_max_str + " M",
                                         style={
                                             'display': 'inline-block',
                                             'margin-right': 30,
@@ -355,7 +372,7 @@ def make_dashboard_webpage(
                                         }
                                     ),
                                 ]),
-                                html.Div(children="Hints: First try adjusting energy; adjusting angular momentum changes the Veff function.",
+                                html.Div(children="Hint: First try adjusting energy; adjusting angular momentum changes the Veff function (and the view).",
                                         style={
                                             'font-size' : effpot_fontsize_small,
                                             'font-weight': 'bold',
