@@ -151,60 +151,81 @@ def create_orbit_figure(ell, E):
     # return the figure and the data
     return fig, t, r_t, phi_t
 
+def ell_of_er(e, rp):
+    """ 
+    mapping (e, rp) -> (ell, E)
+    """
+    return (1 + e) * rp / np.sqrt( (1 + e) * rp - (3 + e**2) )
+
+def E_of_er(e, rp):
+    """ 
+    mapping (e, rp) -> (ell, E)
+    """
+    return ( (1 - e) / (2 * rp) * (4 - (1 + e) * rp)
+             / ( (1 + e) * rp - (3 + e**2) ) )
+        
 def get_ell_E_and_check_pars(ecc, periap, version=None):
     """
     Convert (e, rp) -> (ell, E), and verify that the result is valid.
     If the result is not valid, try to change either eccentricity or
     periapsis slightly (whichever was not set by user) to make it so.
+    
+    The "version" specifies which parameter was altered by the user. 
+    If eccentricity was altered, then it is assumed fixed and periapsis
+    is adjusted, if necessary, to get a valid output.  And vice versa.
     """
     if version == 'ecc':
-        # check validity:
-        #     ell**2 > 0
         rp = periap
-        while True:
-            if ( (1 + ecc) * rp <= (3 + ecc**2) ):
-                rp *= 1.05
-            else:
-                break
-        # check validity:
-        #    ell < ell_max   and   ell > sqrt(4)   and   E < 0
-        while True:
-            ell = (1 + ecc) * rp / np.sqrt( (1 + ecc) * rp - (3 + ecc**2) )
-            E = ( (1 - ecc) / (2 * rp) * (4 - (1 + ecc) * rp)
-                  / ( (1 + ecc) * rp - (3 + ecc**2) ) )
-            if ( ell > ell_max ):
-                # failure
-                rp = None
-                break
-            elif ( (ell**2 < 12) | (E > 0) ):
-                rp *=1.05
-            else:
-                break
-        periap = rp
+        #
+        # Check validity:
+        #
+        #   It turns out that the condition for the ell(e, rp)
+        #   and E(e, rp) equations to be true, i.e., that r0 < rp
+        #   (see Poisson & Will, Sec 5.6.3):
+        #
+        #          rp > 2*(3+e)/(1+e)
+        #
+        #   is sufficient (see my 2023-02-18 notes) to make both
+        #   the denominator of [ell(e, rp)]^2 valid, i.e.,
+        #
+        #         (1+e)*rp - (3+e^2) > 0
+        #
+        #   and for the condition that there is in fact a
+        #   "potential well":
+        #
+        #          ell^2 > 12
+        #
+        #   So, we need only check that top requirement, and, if
+        #   it is not satisfied, change either the periapsis
+        #   or eccentricity (whichever was *not* set by user)
+        #   to fit it.
+        #
+        #   But our additional maximum value of ell places one
+        #   more non-physical requirement on (e, rp).
+        #
+        # check requirement and adjust periapsis if necessary:
+        if (rp < 2*(3+ecc)/(1+ecc)) :
+            rp = 1.05 * (2*(3+ecc)/(1+ecc))
+        # set values of ell(e,rp) and E(e,rp)
+        ell = ell_of_er(ecc, rp)
+        E = E_of_er(ecc, rp)
+        # verify that angular momentum is not too large
+        if ( ell > ell_max ):
+            # failure: will revert to prior values
+            rp = None
         return [ell, E, ecc, rp]
     elif version == 'periap':
-        # check validity:
-        #     ell**2 > 0
         e = ecc
-        while True:
-            if ( (1 + e) * periap <= (3 + e**2) ):
-                e += (1-e)/20
-            else:
-                break
-        # check validity:
-        #    ell < ell_max   and   ell > sqrt(4)   and   E < 0
-        while True:
-            ell = (1 + e) * periap / np.sqrt( (1 + e) * periap - (3 + e**2) )
-            E = ( (1 - e) / (2 * periap) * (4 - (1 + e) * periap)
-                  / ( (1 + e) * periap - (3 + e**2) ) )
-            if ( ell > ell_max ):
-                # failure
-                e = None
-                break
-            elif ( (ell**2 < 12) | (E > 0) ):
-                e += (1-e)/20
-            else:
-                break
+        # check requirement and adjust eccentricity if necessary:
+        if (periap < 2*(3+e)/(1+e)) :
+            e = np.max([0, 1.05* (6 - periap)/(periap - 2)])
+        # set values of ell(e,rp) and E(e,rp)
+        ell = ell_of_er(e, periap)
+        E = E_of_er(e, periap)
+        # verify that angular momentum is not too large
+        if ( ell > ell_max ):
+            # failure: will revert to prior values
+            e = None
         return [ell, E, e, periap]
 
 def get_ecc_periap_and_check_E(ell, E):
