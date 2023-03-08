@@ -124,20 +124,32 @@ def make_dashboard_webpage(
                         html.H3("\"Zoom-Whirl\" orbits and their gravitational waves"),
                         html.H4("Exploring the geodesics of the Schwarzschild metric")
                         ]),
+                    html.Div( style={'float': 'left',
+                                     'margin-left': '10%',
+                                     'font-size': effpot_fontsize,
+                                     'textAlign': 'center'}, children=[
+                        html.A("arXiv", href="https://arxiv.org/abs/2303.04072",
+                               target="_blank"),
+                        html.Br(),
+                        html.A("github", href="https://github.com/holderbp/zoom-whirl-web-app",
+                               target="_blank"),                               
+                        ]),
                     html.Div( style={'float': 'right'}, children=[
                         html.A(
                             html.Img(
                                 src="assets/northwestern-ciera.png",
                                 style = {'float': 'right', 'height': '35px', 'margin-top': '20px'}
                             ),
-                            href="https://ciera.northwestern.edu"),
+                            href="https://ciera.northwestern.edu",
+                            target="_blank"),                                                       
                         html.A(
                             html.Img(
                                 src="assets/gvsu.png",
                                 style = {'float': 'right', 'height': '35px', 'margin-top': '20px',
                                          'margin-right': '20px'}
                             ),
-                            href="https://www.gvsu.edu/physics/"),
+                            href="https://www.gvsu.edu/physics/",
+                            target="_blank"),                            
                         ]),
                     ]),
                 ]),
