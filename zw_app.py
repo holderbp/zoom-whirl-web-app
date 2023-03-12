@@ -707,7 +707,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
             ell, E, ecc, periap, stored_data]
 
 #
-#--- callback to download a nice matplotlib plot of current screen
+#--- callback to download a nice matplotlib pdf of current plots
 #
 #     (triggered by pressing the "export plot" button)
 #
@@ -746,7 +746,7 @@ def download_plot(n_clicks, orbit_data, gw_data, effpot_data,
     return [dcc.send_bytes(write_plot, plot_filename)]
 
 #
-#--- callback to download all data sets currently shown
+#--- callback to download all data sets currently plotted
 #
 #     (triggered by pressing the "download data" button)
 #
@@ -788,8 +788,13 @@ def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, peria
     #    (found here: https://stackoverflow.com/questions/67917360)
     def write_archive(bytes_io):
         with zipfile.ZipFile(bytes_io, mode="w") as zf:
+            # add all dataset csv files
             for df, n in zip(df_strs, df_names):
                 zf.writestr(n + '.csv', df)
+            # add in the python (matplotlib) script that creates pretty plots
+            zf.write("additional-code/plot-output-data.py", arcname="plot-output-data.py")
+            # add instructions regarding the files
+            zf.write("additional-code/plot-output-data_README.txt", arcname="README")
     return [dcc.send_bytes(write_archive, zip_filename)]
 
 #
