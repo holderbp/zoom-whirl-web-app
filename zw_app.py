@@ -6,6 +6,11 @@ import dash.exceptions as dex
 import plotly.express as px
 import plotly.graph_objects as pgo
 import numpy as np
+import matplotlib as mpl
+from matplotlib.backends.backend_pdf import FigureCanvasPdf
+import pandas as pd
+import datetime as dt
+import zipfile
 import zw_app_html as zwah
 import zw_app_orbitcalc as zwoc
 
@@ -438,8 +443,82 @@ def create_effective_potential_figure(ell, E):
     effpot_fig = makefig_effpot(
         r, V, VN, E, plot_rmin, plot_rmax, plot_Vmin, plot_Vmax
         )
-    return effpot_fig, E
-    
+    rind = np.where((r > plot_rmin) & (r < plot_rmax))
+    E_v_r = E*(r*0 + 1)
+    return effpot_fig, E, r[rind], V[rind], E_v_r[rind]
+
+def create_plot_for_export(bytes_io, ep_r, ep_V, ep_E, orb_phi, orb_r,
+                           gw_t, gw_Hplus, gw_Hcross,
+                           ell, E, ecc, periap, M_over_m):
+    """
+    This function creates a matplotlib plot *without* using pyplot, which 
+    generates this error when used:
+      "Starting a Matplotlib GUI outside of the main thread will likely fail."
+    I found the solution at:
+            https://stackoverflow.com/questions/69650149    
+    """
+    # use gridspec to make 4 figures in nice aspect ratio
+    gs = mpl.gridspec.GridSpec(7, 2) # nrows, ncols
+    # call the "Figure" method directly from matplotlib
+    fig = mpl.figure.Figure(figsize=(8, 10.5))
+    # effective potential plot
+    ax1 = fig.add_subplot(gs[0:3,0])
+    ax1.plot(ep_r, ep_V)
+    ax1.plot(ep_r, ep_E)
+    ax1.set_xlabel(r'$r/M$')
+    ax1.set_ylabel(r'$V_{\rm eff}$')
+    ax1.text(0.8, 0.2, r"$\ell$" + f" = {ell:.6f}\n" + r"$E$" + f" = {E:.6f}",
+             horizontalalignment='center',
+             verticalalignment='center', transform=ax1.transAxes)
+    # orbit plot
+    ax3 = fig.add_subplot(gs[0:3,1], polar=True)
+    ax3.plot(orb_phi, orb_r)
+    ax3.text(0.8, 0, r"$e$" + f" = {ecc:.3f}\n" + r"$r_p$" + f" = {periap:.2f}",
+             horizontalalignment='center',
+             verticalalignment='top', transform=ax3.transAxes)
+    # Gwave-Hplus plot
+    ax2 = fig.add_subplot(gs[3:5,:])
+    ax2.plot(gw_t, gw_Hplus)
+    ax2.set_xlabel(r'$\tau/M$')
+    ax2.set_ylabel(r'$H_+$')
+    ax2.set_title(f"M/m = {round(M_over_m):d}")
+    # Gwave-Hcross plot
+    ax4 = fig.add_subplot(gs[5:7,:])
+    ax4.plot(gw_t, gw_Hcross)
+    ax4.set_xlabel(r'$\tau/M$')
+    ax4.set_ylabel(r'$H_x$')
+    # gather plots and adjust margins
+    fig.tight_layout()
+    # write the pdf image to the buffer that came in as an argument
+    #  (again, without using pyplot's "savefig")
+    canvas = FigureCanvasPdf(fig)
+    canvas.print_pdf(bytes_io)
+
+def create_dataframes_of_stored_data(orbit_data, gw_data, effpot_data,
+                                 ell, E, ecc, periap):
+    # create dataframes of stored data
+    df_orb = pd.DataFrame({
+        't': orbit_data['t'],
+        'r': orbit_data['r'],
+        'phi': orbit_data['phi']})
+    df_gw = pd.DataFrame({
+        't': gw_data['t'],
+        'Hplus': gw_data['plus'],
+        'Hcross': gw_data['cross']})
+    df_effpot = pd.DataFrame({
+        'r': effpot_data['r'],
+        'Veff': effpot_data['Veff'],
+        'E': effpot_data['E'],})
+    # create dataframe of parameter values
+    df_pars = pd.DataFrame({
+        'ell': ell,
+        'E': E,
+        'ecc': ecc,
+        'periap': periap,
+        'M_over_m': [zwoc.M/zwoc.m],})
+    return [df_orb, df_gw, df_effpot, df_pars]
+
+
 ###############################
 #    end helper functions     #
 ###############################
@@ -536,6 +615,7 @@ app.clientside_callback(
         State('stored-gw-data', 'data'),        
     ]
 )
+
 #
 #--- callback to re-make the effective potential plot
 #
@@ -552,7 +632,8 @@ app.clientside_callback(
         Output('stored-angmom', 'data'),
         Output('stored-energy', 'data'),        
         Output('stored-ecc', 'data'),
-        Output('stored-periap', 'data'),        
+        Output('stored-periap', 'data'),
+        Output('stored-effpot', 'data'),
     ],
     [
         Input('angmom-val-str', 'value'),
@@ -573,11 +654,6 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
     # convert input strings to numbers (and check for invalid/erroneous)
     [ell_new, E_new, ecc_new, periap_new] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
-    #print("--- input values:")
-    #print("ell =", ell_new)
-    #print("E =", E_new)          
-    #print("ecc =", ecc_new)
-    #print("periap =", periap_new)          
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
@@ -622,17 +698,99 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
             E = E_old
             ecc = ecc_old
             periap = periap_old
-    #print("--- output values:")
-    #print("ell =", ell)
-    #print("E =", E)          
-    #print("ecc =", ecc)
-    #print("periap =", periap)
     #
     #--- Create the effective potential figure and proceed...
     #
-    effpot_fig, E = create_effective_potential_figure(ell, E)
+    effpot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
+    stored_data = dict(r = r, Veff = V, E = E_v_r)
     return [effpot_fig, str(ell), str(E), str(ecc), str(periap),
-            ell, E, ecc, periap]
+            ell, E, ecc, periap, stored_data]
+
+#
+#--- callback to download a nice matplotlib plot of current screen
+#
+#     (triggered by pressing the "export plot" button)
+#
+@app.callback(
+    [
+        Output('plot-download', 'data')
+    ],
+    [
+        Input('plot-button', 'n_clicks'),
+    ],
+    [
+        State('stored-orbit', 'data'),
+        State('stored-gw-data', 'data'),
+        State('stored-effpot', 'data'),            
+        State('stored-angmom', 'data'),
+        State('stored-energy', 'data'),
+        State('stored-ecc', 'data'),
+        State('stored-periap', 'data'),                
+    ],
+)
+def download_plot(n_clicks, orbit_data, gw_data, effpot_data,
+                  ell, E, ecc, periap):
+    # create (dated and parameter-labeled) filename for plot pdf
+    nowstr = dt.datetime.now().strftime("%Y-%m-%d_%H%M-%S")
+    plot_filename = "zoomwhirl-data_L_" + f"{ell:.3e}" + "_E_" \
+        + f"{E:.3e}" +    "_" + nowstr + ".pdf"
+    # this function sends the destination "bytes_io" to a
+    # subroutine that creates a plot with matplotlib,
+    # writing the pdf output to "bytes_io"
+    def write_plot(bytes_io):
+        create_plot_for_export(bytes_io,
+            effpot_data['r'], effpot_data['Veff'], effpot_data['E'],
+            orbit_data['phi'], orbit_data['r'],
+            gw_data['t'], gw_data['plus'], gw_data['cross'],
+            ell, E, ecc, periap, zwoc.M/zwoc.m)
+    return [dcc.send_bytes(write_plot, plot_filename)]
+
+#
+#--- callback to download all data sets currently shown
+#
+#     (triggered by pressing the "download data" button)
+#
+@app.callback(
+    [
+        Output('data-download', 'data')
+    ],
+    [
+        Input('download-button', 'n_clicks'),
+    ],
+    [
+        State('stored-orbit', 'data'),
+        State('stored-gw-data', 'data'),
+        State('stored-effpot', 'data'),            
+        State('stored-angmom', 'data'),
+        State('stored-energy', 'data'),
+        State('stored-ecc', 'data'),
+        State('stored-periap', 'data'),                
+    ],
+)
+def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, periap):
+    # put the stored data into dataframes
+    [df_orb, df_gw, df_effpot, df_pars] = \
+        create_dataframes_of_stored_data(orbit_data, gw_data, effpot_data,
+                                         ell, E, ecc, periap)
+    # convert all dataframes into csv-file strings for output to zip
+    dfs = [df_orb, df_gw, df_effpot, df_pars]
+    df_names = ['orbit', 'grav-wave', 'eff-pot', 'pars']
+    df_strs = []
+    for df in dfs:
+        dfstr = df.to_csv(index=False)
+        df_strs.append(dfstr)
+    # create (dated and parameter-labeled) filename for zip file
+    nowstr = dt.datetime.now().strftime("%Y-%m-%d_%H%M-%S")
+    zip_filename = "zoomwhirl-data_L_" + f"{ell:.3e}" + "_E_" \
+        + f"{E:.3e}" +    "_" + nowstr + ".zip"
+    # This function takes the bytes_io argument as the place
+    # to write the zip file.
+    #    (found here: https://stackoverflow.com/questions/67917360)
+    def write_archive(bytes_io):
+        with zipfile.ZipFile(bytes_io, mode="w") as zf:
+            for df, n in zip(df_strs, df_names):
+                zf.writestr(n + '.csv', df)
+    return [dcc.send_bytes(write_archive, zip_filename)]
 
 #
 #--- callback to re-calculate orbit, save new data set, and restart figures
@@ -721,7 +879,7 @@ E = get_number_from_string(default_energy_str)
 init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E)
 init_orbit_data = dict(r = r_t, phi = phi_t,
                        resolution = default_orbit_resolution)
-init_pot_fig, E = create_effective_potential_figure(ell, E)
+init_pot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
 init_gw_plus_fig, init_gw_cross_fig, t, Hp, Hc = \
     create_gw_figures(t, r_t, phi_t)
 init_gw_data = dict(t = t, plus = Hp, cross = Hc,

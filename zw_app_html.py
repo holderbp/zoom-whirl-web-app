@@ -30,7 +30,16 @@ def make_dashboard_webpage(
     dashboard_page = html.Div(
         children=[
             #
-            #=== These apply to all rows & columns
+            # =======================================
+            # These items apply to all rows & columns
+            # =======================================
+            #
+            # Downloads:
+            #
+            #    for downloading zipped file of all csv data frames
+            #
+            dcc.Download(id='data-download'),
+            dcc.Download(id='plot-download'),            
             #
             # Intervals:
             #
@@ -55,12 +64,6 @@ def make_dashboard_webpage(
                       data=0,
                       clear_data=False,
                       modified_timestamp=-1),
-            dcc.Store(id='stored-orbit',
-                      storage_type='memory',
-                      data=0,
-                      #data=init_orbit_data,                      
-                      clear_data=False,
-                      modified_timestamp=-1),
             dcc.Store(id='stored-angmom',
                       storage_type='memory',
                       data=0,
@@ -81,7 +84,19 @@ def make_dashboard_webpage(
                       data=0,
                       clear_data=False,
                       modified_timestamp=-1),
+            dcc.Store(id='stored-orbit',
+                      storage_type='memory',
+                      data=0,
+                      #data=init_orbit_data,                      
+                      clear_data=False,
+                      modified_timestamp=-1),
             dcc.Store(id='stored-gw-data',
+                      storage_type='memory',
+                      data=0,
+                      #data=init_gw_data,
+                      clear_data=False,
+                      modified_timestamp=-1),
+            dcc.Store(id='stored-effpot',
                       storage_type='memory',
                       data=0,
                       #data=init_gw_data,
@@ -132,8 +147,21 @@ def make_dashboard_webpage(
                                target="_blank"),
                         html.Br(),
                         html.A("github", href="https://github.com/holderbp/zoom-whirl-web-app",
-                               target="_blank"),                               
+                               target="_blank"),
+                        html.Div( children=[
+                            html.Button('export data (zip)',
+                                        id='download-button', n_clicks=0,
+                                        style ={
+                                            'font-size' : effpot_fontsize_small,
+                                            'margin-top' : '5px',
+                                        }),
+                            html.Button('export plots (pdf)',
+                                        id='plot-button', n_clicks=0,
+                                        style ={
+                                            'font-size' : effpot_fontsize_small,
+                                        }),
                         ]),
+                    ]),
                     html.Div( style={'float': 'right'}, children=[
                         html.A(
                             html.Img(
@@ -278,8 +306,9 @@ def make_dashboard_webpage(
                                             #'display': 'inline-block',
                                             'font-size' : effpot_fontsize_small,
                                             'margin-top' : '10px',
+                                            'margin-bottom' :'5px'
                                         }
-                                    ),                              
+                                    ),
                                 ]),
                             ]),
                             dbc.Col(width=6, children=[
