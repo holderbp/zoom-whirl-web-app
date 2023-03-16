@@ -94,7 +94,7 @@ default_angmom_str = "3.7" # "4.0"
 default_energy_str = "-0.03445" # "-0.03"
 default_ecc_str = "0.633223" # 
 default_periap_str = "4.52351" #
-default_time_str = "1000" #
+default_tmax_str = str(zwoc.tf_default) # 1000
 default_speed_str = "1" #
 
 ###############################
@@ -637,6 +637,7 @@ app.clientside_callback(
         Output('stored-energy', 'data'),        
         Output('stored-ecc', 'data'),
         Output('stored-periap', 'data'),
+        Output('stored-tmax', 'data'),        
         Output('stored-effpot', 'data'),
     ],
     [
@@ -652,18 +653,19 @@ app.clientside_callback(
         State('stored-energy', 'data'),
         State('stored-ecc', 'data'),
         State('stored-periap', 'data'),
-        State('stored-offset', 'data'),        
+        State('stored-tmax', 'data'),
+        State('stored-offset', 'data'),                
     ],
 )
 def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
-                               n_clicks, ell_old, E_old, ecc_old, periap_old, offset):
+                               n_clicks, ell_old, E_old, ecc_old, periap_old, tmax_old, offset):
     # convert input strings to numbers (and check for invalid/erroneous)
     [ell_new, E_new, ecc_new, periap_new] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     # assume tmax unchanged for now
-    tmax = zwoc.tf
+    tmax = tmax_old
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
         #
         # invalid/erroneous input -> revert to current values
@@ -681,6 +683,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
                                         default_ecc_str, default_periap_str)
         # and reset tmax to default value
         tmax = zwoc.tf_default
+        zwoc.tf = tmax
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
            | (trigger['prop_id'] == '.') ):
            #
@@ -724,14 +727,14 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
             # and the corresponding
         else:
             # if out of bounds, leave tmax unchanged
-            tmax = zwoc.tf
+            tmax = tmax_old
     #
     #--- Create the effective potential figure and proceed...
     #
     effpot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
     stored_data = dict(r = r, Veff = V, E = E_v_r)
-    return [effpot_fig, str(ell), str(E), str(ecc), str(periap), str(int(tmax)),
-            ell, E, ecc, periap, stored_data]
+    return [effpot_fig, str(ell), str(E), str(ecc), str(periap), str(tmax),
+            ell, E, ecc, periap, tmax, stored_data]
 
 #
 #--- callback to change speed of orbit
@@ -952,7 +955,7 @@ initial_dashboard_page = zwah.make_dashboard_webpage(
     default_energy_str,
     default_ecc_str,
     default_periap_str,    
-    default_time_str,
+    default_tmax_str,
     default_speed_str,        
     )
 

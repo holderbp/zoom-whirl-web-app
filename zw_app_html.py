@@ -1,6 +1,7 @@
 import dash.html as html
 import dash.dcc as dcc
 import dash_bootstrap_components as dbc
+import zw_app_orbitcalc as zwoc
 
 effpot_fontsize = '10pt'
 effpot_fontsize_small = '8pt'
@@ -105,6 +106,11 @@ def make_dashboard_webpage(
                       storage_type='memory',
                       data=0,
                       #data=init_gw_data,
+                      clear_data=False,
+                      modified_timestamp=-1),
+            dcc.Store(id='stored-tmax',
+                      storage_type='memory',
+                      data=float(zwoc.tf_default),
                       clear_data=False,
                       modified_timestamp=-1),
             dcc.Store(id='stored-speed',
