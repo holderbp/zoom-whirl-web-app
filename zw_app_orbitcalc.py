@@ -11,8 +11,8 @@ G = 1
 M = 1
 m = M/100000
 ti = 0
-tf = 1000
-Ntsteps = 1001
+tf_default = 1000
+tf = tf_default
 very_large_r = 100000
 
 # create potential graph data
@@ -105,6 +105,7 @@ def get_orbit():
     #
     #--- Times to evaluate function
     #
+    Ntsteps = int(tf-ti)+1
     evaltimes = np.linspace(ti, tf, num=Ntsteps)
     #
     #--- evolve

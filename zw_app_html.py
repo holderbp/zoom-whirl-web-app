@@ -12,7 +12,10 @@ height_secondrow_card = '45vh'
 
 # max allowed angular momentum 
 ell_max_str = "20" # M (converted to float and used by the app)
-
+tmax_min_str = "100"
+tmax_max_str = "10000"
+speed_min_str = "1"
+speed_max_str = "10"
 
 ###############################
 #   dashboard webpage setup   #
@@ -25,7 +28,9 @@ def make_dashboard_webpage(
         default_angmom_str,
         default_energy_str,
         default_ecc_str,
-        default_periap_str,        
+        default_periap_str,
+        default_tmax_str,
+        default_speed_str,          
 ):
     dashboard_page = html.Div(
         children=[
@@ -102,6 +107,11 @@ def make_dashboard_webpage(
                       #data=init_gw_data,
                       clear_data=False,
                       modified_timestamp=-1),
+            dcc.Store(id='stored-speed',
+                      storage_type='memory',
+                      data=1,
+                      clear_data=False,
+                      modified_timestamp=-1),
             #
             #=== Modal (information pop-up window)
             #
@@ -140,20 +150,78 @@ def make_dashboard_webpage(
                         html.H4("Exploring the geodesics of the Schwarzschild metric")
                         ]),
                     html.Div( style={'float': 'left',
-                                     'margin-left': '10%',
+                                     'margin-left': '5%',
                                      'font-size': effpot_fontsize,
                                      'textAlign': 'center'}, children=[
-                        html.A("arXiv", href="https://arxiv.org/abs/2303.04072",
-                               target="_blank"),
-                        html.Br(),
-                        html.A("github", href="https://github.com/holderbp/zoom-whirl-web-app",
-                               target="_blank"),
+                        html.Div( children=[
+                            html.Div( children="orbit speed: 1x ≤",
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 5,
+                                    'margin-bottom': 5,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),
+                            dcc.Input(
+                                id='speed-val-str', type='text',
+                                value = default_speed_str,
+                                placeholder = default_speed_str,
+                                # don't allow update until user enters
+                                debounce = True,
+                                size = '2',
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 2,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),
+                            html.Div(
+                                children="x ≤ " + speed_max_str + "x",
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 5,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),
+                        ]),
+                        html.Div( children=[
+                            html.Div(
+                                children= "\u03c4\u2098\u2090\u2093 : " + tmax_min_str + " M ≤",
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 5,
+                                    'margin-bottom': 5,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),                                        
+                            dcc.Input(
+                                id='tmax-val-str', type='text',
+                                value = default_tmax_str,
+                                placeholder = default_tmax_str,
+                                # don't allow update until user enters
+                                debounce = True,
+                                size = '7',
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 5,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),                                        
+                            html.Div(
+                                children="≤ " + tmax_max_str + " M",
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 5,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),
+                        ]),
                         html.Div( children=[
                             html.Button('export data (zip)',
                                         id='download-button', n_clicks=0,
                                         style ={
                                             'font-size' : effpot_fontsize_small,
-                                            'margin-top' : '5px',
+                                            'margin-bottom' : '5px',
                                         }),
                             html.Button('export plots (pdf)',
                                         id='plot-button', n_clicks=0,
@@ -161,6 +229,17 @@ def make_dashboard_webpage(
                                             'font-size' : effpot_fontsize_small,
                                         }),
                         ]),
+                    ]),                        
+                    html.Div( style={'float': 'left',
+                                     'margin-top': '25px',
+                                     'margin-left': '5%',
+                                     'font-size': effpot_fontsize,
+                                     'textAlign': 'center'}, children=[
+                        html.A("arXiv", href="https://arxiv.org/abs/2303.04072",
+                               target="_blank"),
+                        html.Br(),
+                        html.A("github", href="https://github.com/holderbp/zoom-whirl-web-app",
+                               target="_blank"),
                     ]),
                     html.Div( style={'float': 'right'}, children=[
                         html.A(
@@ -298,8 +377,7 @@ def make_dashboard_webpage(
                                     ]),
                                     html.P("Units are \"geometrized\" (G=c=1)."
                                            + " Only bound orbits are allowed."
-                                           + " Upper limit on angular momentum, "
-                                           + ell_max_str + " M,"
+                                           + " Upper limit on angular momentum"
                                            + " is for computational efficiency; all"
                                            + " other limits are physical.",
                                         style={

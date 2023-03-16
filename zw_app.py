@@ -94,6 +94,8 @@ default_angmom_str = "3.7" # "4.0"
 default_energy_str = "-0.03445" # "-0.03"
 default_ecc_str = "0.633223" # 
 default_periap_str = "4.52351" #
+default_time_str = "1000" #
+default_speed_str = "1" #
 
 ###############################
 #       helper functions      #
@@ -319,7 +321,7 @@ def makefig_effpot(r, V, VN, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     fig.update_layout(
         #title_text = 'Effective Potential',
         xaxis = dict(range = [win_rmin, win_rmax],
-                     title = {'text': 'Radius/M'}),
+                     title = {'text': 'radius, r (M)'}),
         yaxis = dict(range = [win_Vmin, win_Vmax],
                      title = {'text': 'Veff'}),
         margin=dict(l=10, r=10, t=10, b=10),
@@ -353,7 +355,7 @@ def makefig_gw(t, H, Htype):
     fig.update_layout(
         xaxis = dict(
             range = [0, t[-1]],
-            title = {'text': 'Proper-Time/M'}
+            title = {'text': 'proper time, \u03c4 (M)'}
         ),
         yaxis = dict(
             range = [1.05*min(H), 1.05*max(H)],
@@ -556,12 +558,12 @@ def toggle_modal(n1, n2, is_open):
 # javascript function within the clientside callback comment
 app.clientside_callback(
     """
-    function (n_intervals, data, offset, energy, gwdata) {
+    function (n_intervals, data, energy, gwdata, offset, offset_speed) {
        if ( data == 0 ){
             return window.dash_clientside.no_update
        }
        offset = offset % data.r.length;
-       const end = Math.min((offset + 1), data.r.length);
+       const end = Math.min((offset + offset_speed), data.r.length);
        const Earr = new Array(energy, energy);
        // note that we indicate the second trace "[1]" should be updated
        // and one point "1" is updated
@@ -610,9 +612,10 @@ app.clientside_callback(
     ],
     [
         State('stored-orbit', 'data'),
-        State('stored-offset', 'data'),
         State('stored-energy', 'data'),
         State('stored-gw-data', 'data'),        
+        State('stored-offset', 'data'),
+        State('stored-speed', 'data'),        
     ]
 )
 
@@ -629,6 +632,7 @@ app.clientside_callback(
         Output('energy-val-str', 'value'),
         Output('ecc-val-str', 'value'),
         Output('periap-val-str', 'value'),
+        Output('tmax-val-str', 'value'),
         Output('stored-angmom', 'data'),
         Output('stored-energy', 'data'),        
         Output('stored-ecc', 'data'),
@@ -640,22 +644,26 @@ app.clientside_callback(
         Input('energy-val-str', 'value'),
         Input('ecc-val-str', 'value'),
         Input('periap-val-str', 'value'),
+        Input('tmax-val-str', 'value'),
         Input('default-button', 'n_clicks'),
     ],
     [
         State('stored-angmom', 'data'),
         State('stored-energy', 'data'),
         State('stored-ecc', 'data'),
-        State('stored-periap', 'data'),                
+        State('stored-periap', 'data'),
+        State('stored-offset', 'data'),        
     ],
 )
-def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
-                               n_clicks, ell_old, E_old, ecc_old, periap_old):
+def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
+                               n_clicks, ell_old, E_old, ecc_old, periap_old, offset):
     # convert input strings to numbers (and check for invalid/erroneous)
     [ell_new, E_new, ecc_new, periap_new] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
+    # assume tmax unchanged for now
+    tmax = zwoc.tf
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
         #
         # invalid/erroneous input -> revert to current values
@@ -671,6 +679,8 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
         [ell, E, ecc, periap] = \
             get_all_values_from_strings(default_angmom_str, default_energy_str,
                                         default_ecc_str, default_periap_str)
+        # and reset tmax to default value
+        tmax = zwoc.tf_default
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
            | (trigger['prop_id'] == '.') ):
            #
@@ -680,7 +690,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
            E = E_new
            # get eccentricity and periapsis, adjusting energy if necessary
            [ecc, periap, E] = get_ecc_periap_and_check_E(ell, E)
-    elif ('ecc' in  trigger['prop_id']):
+    elif ('ecc' in trigger['prop_id']):
         ecc = ecc_new
         periap = periap_new
         [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='ecc')
@@ -689,7 +699,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
             E = E_old
             ecc = ecc_old
             periap = periap_old
-    elif ('periap' in  trigger['prop_id']):
+    elif ('periap' in trigger['prop_id']):
         ecc = ecc_new
         periap = periap_new
         [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='periap')
@@ -698,13 +708,55 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str,
             E = E_old
             ecc = ecc_old
             periap = periap_old
+    elif ('tmax-val' in trigger['prop_id']):
+        # all parameters are unchanged
+        ell = ell_old
+        E = E_old
+        ecc = ecc_old
+        periap = periap_old
+        # but change the time of integration
+        tmax = int(get_number_from_string(tmax_str))
+        # as long as it is within the allowed range
+        if ( (tmax >= float(zwah.tmax_min_str))
+             & (tmax <= float(zwah.tmax_max_str)) ):
+            # change the max time in the orbit calculation module
+            zwoc.tf = tmax
+            # and the corresponding
+        else:
+            # if out of bounds, leave tmax unchanged
+            tmax = zwoc.tf
     #
     #--- Create the effective potential figure and proceed...
     #
     effpot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
     stored_data = dict(r = r, Veff = V, E = E_v_r)
-    return [effpot_fig, str(ell), str(E), str(ecc), str(periap),
+    return [effpot_fig, str(ell), str(E), str(ecc), str(periap), str(int(tmax)),
             ell, E, ecc, periap, stored_data]
+
+#
+#--- callback to change speed of orbit
+#
+#     (triggered by changing the speed (in "x"))
+#
+@app.callback(
+    [
+        Output('stored-speed', 'data'),
+        Output('speed-val-str', 'value')
+    ],
+    [
+        Input('speed-val-str', 'value'),
+    ],
+    [
+        State('stored-speed', 'data')        
+    ],
+)
+def change_speed(speed_str, oldspeed):
+    newspeed = int(get_number_from_string(speed_str))
+    if ( (newspeed >= float(zwah.speed_min_str))
+         & (newspeed <= float(zwah.speed_max_str)) ):
+        return newspeed, str(newspeed)
+    else:
+        return oldspeed, str(oldspeed)
 
 #
 #--- callback to download a nice matplotlib pdf of current plots
@@ -900,6 +952,8 @@ initial_dashboard_page = zwah.make_dashboard_webpage(
     default_energy_str,
     default_ecc_str,
     default_periap_str,    
+    default_time_str,
+    default_speed_str,        
     )
 
 # run the app
