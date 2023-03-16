@@ -76,7 +76,6 @@ M = 1
 #
 #--- orbit graph
 #
-default_orbit_resolution = 1000
 print_out_data = False # This should usually be false... will print out each orbit
 #
 #--- effective potential graph
@@ -863,8 +862,7 @@ def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax)
     [ell, E, ecc, periap] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str)
     fig_orb, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
-    stored_data = dict(t = t, r = r_t, phi = phi_t,
-                       resolution=default_orbit_resolution)
+    stored_data = dict(t = t, r = r_t, phi = phi_t)
     return fig_orb, stored_data
 
 #
@@ -893,8 +891,7 @@ def recalculate_gw(orbit_data, E, ell, ecc, periap):
     r = orbit_data['r']
     phi = orbit_data['phi']
     gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi)
-    stored_data = dict(t = t, plus = Hp, cross = Hc,
-                       resolution=default_orbit_resolution)
+    stored_data = dict(t = t, plus = Hp, cross = Hc)
     # output the data to user (this should usually be turned off!)
     if print_out_data:
         print("################################")
@@ -921,13 +918,11 @@ ell = get_number_from_string(default_angmom_str)
 E = get_number_from_string(default_energy_str)
 tmax = get_number_from_string(default_tmax_str)
 init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
-init_orbit_data = dict(r = r_t, phi = phi_t,
-                       resolution = default_orbit_resolution)
+init_orbit_data = dict(r = r_t, phi = phi_t)
 init_pot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
 init_gw_plus_fig, init_gw_cross_fig, t, Hp, Hc = \
     create_gw_figures(t, r_t, phi_t)
-init_gw_data = dict(t = t, plus = Hp, cross = Hc,
-                    resolution=default_orbit_resolution)                    
+init_gw_data = dict(t = t, plus = Hp, cross = Hc)
 #
 #--- Grab the webpage from the zoom-whirl app html module
 #
