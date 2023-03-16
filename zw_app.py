@@ -435,7 +435,7 @@ def create_effective_potential_figure(ell, E):
 
 def create_plot_for_export(bytes_io, ep_r, ep_V, ep_E, orb_phi, orb_r,
                            gw_t, gw_Hplus, gw_Hcross,
-                           ell, E, ecc, periap, M_over_m):
+                           ell, E, ecc, periap, bhmass):
     """
     This function creates a matplotlib plot *without* using pyplot, which 
     generates this error when used:
@@ -467,7 +467,7 @@ def create_plot_for_export(bytes_io, ep_r, ep_V, ep_E, orb_phi, orb_r,
     ax2.plot(gw_t, gw_Hplus)
     ax2.set_xlabel(r'$\tau/M$')
     ax2.set_ylabel(r'$H_+$')
-    ax2.set_title(f"M/m = {round(M_over_m):d}")
+    ax2.set_title(f"M/m = {int(bhmass):d}")
     # Gwave-Hcross plot
     ax4 = fig.add_subplot(gs[5:7,:])
     ax4.plot(gw_t, gw_Hcross)
@@ -481,7 +481,7 @@ def create_plot_for_export(bytes_io, ep_r, ep_V, ep_E, orb_phi, orb_r,
     canvas.print_pdf(bytes_io)
 
 def create_dataframes_of_stored_data(orbit_data, gw_data, effpot_data,
-                                 ell, E, ecc, periap):
+                                     ell, E, ecc, periap, bhmass):
     # create dataframes of stored data
     df_orb = pd.DataFrame({
         't': orbit_data['t'],
@@ -501,7 +501,7 @@ def create_dataframes_of_stored_data(orbit_data, gw_data, effpot_data,
         'E': E,
         'ecc': ecc,
         'periap': periap,
-        'M_over_m': [zwoc.M/zwoc.m],})
+        'M_over_m': [bhmass],})
     return [df_orb, df_gw, df_effpot, df_pars]
 
 
@@ -762,11 +762,12 @@ def change_speed(speed_str, oldspeed):
         State('stored-angmom', 'data'),
         State('stored-energy', 'data'),
         State('stored-ecc', 'data'),
-        State('stored-periap', 'data'),                
+        State('stored-periap', 'data'),
+        State('stored-bhmass', 'data'),        
     ],
 )
 def download_plot(n_clicks, orbit_data, gw_data, effpot_data,
-                  ell, E, ecc, periap):
+                  ell, E, ecc, periap, bhmass):
     # create (dated and parameter-labeled) filename for plot pdf
     nowstr = dt.datetime.now().strftime("%Y-%m-%d_%H%M-%S")
     plot_filename = "zoomwhirl-data_L_" + f"{ell:.3e}" + "_E_" \
@@ -776,10 +777,10 @@ def download_plot(n_clicks, orbit_data, gw_data, effpot_data,
     # writing the pdf output to "bytes_io"
     def write_plot(bytes_io):
         create_plot_for_export(bytes_io,
-            effpot_data['r'], effpot_data['Veff'], effpot_data['E'],
-            orbit_data['phi'], orbit_data['r'],
-            gw_data['t'], gw_data['plus'], gw_data['cross'],
-            ell, E, ecc, periap, zwoc.M/zwoc.m)
+                               effpot_data['r'], effpot_data['Veff'], effpot_data['E'],
+                               orbit_data['phi'], orbit_data['r'],
+                               gw_data['t'], gw_data['plus'], gw_data['cross'],
+                               ell, E, ecc, periap, bhmass)
     return [dcc.send_bytes(write_plot, plot_filename)]
 
 #
@@ -801,14 +802,15 @@ def download_plot(n_clicks, orbit_data, gw_data, effpot_data,
         State('stored-angmom', 'data'),
         State('stored-energy', 'data'),
         State('stored-ecc', 'data'),
-        State('stored-periap', 'data'),                
+        State('stored-periap', 'data'),
+        State('stored-bhmass', 'data'),           
     ],
 )
-def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, periap):
+def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, periap, bhmass):
     # put the stored data into dataframes
     [df_orb, df_gw, df_effpot, df_pars] = \
         create_dataframes_of_stored_data(orbit_data, gw_data, effpot_data,
-                                         ell, E, ecc, periap)
+                                         ell, E, ecc, periap, bhmass)
     # convert all dataframes into csv-file strings for output to zip
     dfs = [df_orb, df_gw, df_effpot, df_pars]
     df_names = ['orbit', 'grav-wave', 'eff-pot', 'pars']
@@ -875,7 +877,9 @@ def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax)
     [
         Output('gw_plus_graph', 'figure'),
         Output('gw_cross_graph', 'figure'),
-        Output('stored-gw-data', 'data'),        
+        Output('stored-gw-data', 'data'),
+        Output('bhmass-str', 'value'),
+        Output('stored-bhmass', 'data'),          
     ],
     [
         Input('stored-orbit', 'data'),
@@ -885,14 +889,19 @@ def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax)
         State('stored-energy', 'data'),
         State('stored-angmom', 'data'),        
         State('stored-ecc', 'data'),
-        State('stored-periap', 'data'),        
+        State('stored-periap', 'data'),
+        State('stored-bhmass', 'data'),                
     ],
 )
-def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap):
+def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap, bhmass_cur):
     t = orbit_data['t']
     r = orbit_data['r']
     phi = orbit_data['phi']
-    bhmass = get_number_from_string(bhmass_str)    
+    bhmass = get_number_from_string(bhmass_str)
+    if bhmass is None:
+        # bad user input, revert to prior value
+        bhmass_str = str(bhmass_cur)
+        bhmass = bhmass_cur
     gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi, bhmass)
     stored_data = dict(t = t, plus = Hp, cross = Hc)
     # output the data to user (this should usually be turned off!)
@@ -904,7 +913,7 @@ def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap):
         print("# t  r(t)  phi(t)  Hplus(t)  Hcross(t)")
         for i in range(len(t)):
             print(t[i], r_t[i], phi_t[i], Hp[i], Hc[i])    
-    return gw_plus_fig, gw_cross_fig, stored_data
+    return gw_plus_fig, gw_cross_fig, stored_data, bhmass_str, bhmass
 
 ###############################
 #        end callbacks        #

@@ -119,6 +119,11 @@ def make_dashboard_webpage(
                       data=1,
                       clear_data=False,
                       modified_timestamp=-1),
+            dcc.Store(id='stored-bhmass',
+                      storage_type='memory',
+                      data=int(zwoc.M_over_m_default),
+                      clear_data=False,
+                      modified_timestamp=-1),
             #
             #=== Modal (information pop-up window)
             #
