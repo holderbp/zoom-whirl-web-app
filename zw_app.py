@@ -272,9 +272,10 @@ def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, tma
     ecc = get_number_from_string(ecc_str)
     periap = get_number_from_string(periap_str)
     tmax = get_number_from_string(tmax_str)
-    if tmax is not None:
-        tmax = int(tmax)
-    # check validity
+    if None in [ell, E, ecc, periap, tmax]:
+        # don't do any further checks if something not valid
+        return [ell, E, ecc, periap, tmax]
+    tmax = int(tmax)
     if checkvalid:
         if ( (ell**2 < 12*(G*M)**2) | (ell > ell_max) ):
             ell = None
