@@ -31,7 +31,8 @@ def make_dashboard_webpage(
         default_ecc_str,
         default_periap_str,
         default_tmax_str,
-        default_speed_str,          
+        default_speed_str,
+        default_bhmass_str,         
 ):
     dashboard_page = html.Div(
         children=[
@@ -518,8 +519,23 @@ def make_dashboard_webpage(
             dbc.Row([
                 dbc.Card(
                     [
-                        dbc.CardHeader("Gravitational Wave Signal (for M/m = " +
-                                       str(int(zwoc.M_over_m)) + ")"),
+                        dbc.CardHeader([
+                            html.Div(children="Gravitational Wave Signal for M/m = ",
+                                     style={'display': 'inline-block'}),
+                            dcc.Input(
+                                id='bhmass-str', type='text',
+                                value = default_bhmass_str,
+                                placeholder = default_bhmass_str,
+                                # don't allow update until user enters
+                                debounce = True,
+                                size = '8',
+                                style={
+                                    'display': 'inline-block',
+                                    'margin-right': 2,
+                                    'font-size' : effpot_fontsize,
+                                }
+                            ),
+                        ]),
                         dbc.CardBody(
                             [
                                 dcc.Graph(

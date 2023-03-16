@@ -7,7 +7,7 @@ import scipy.optimize as spo
 #
 G = 1  # using "geometrized" units where G=c=1 but left "G" in for clarity
 M = 1  # all dimensional quantities in units of M, but left "M" in for clarity
-M_over_m = 100000  # Fixme: this could be adjustable by user (only influences GW amplitude)
+M_over_m_default = 100000  # Fixme: this could be adjustable by user (only influences GW amplitude)
 ti = 0
 tf_default = 1000
 very_large_r = 100000
@@ -107,7 +107,7 @@ def get_orbit(ell, E, tmax):
     return evaltimes, r_t, phi_t, rp, ra, ecc
 
 # get Iddot for gravitational wave plotting
-def get_Iddot(t, r, phi):
+def get_Iddot(t, r, phi, M_over_m):
     m = M/M_over_m
     N = len(r)
     XY = np.zeros(shape=(2, N))

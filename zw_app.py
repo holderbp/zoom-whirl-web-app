@@ -95,6 +95,7 @@ default_ecc_str = "0.633223" #
 default_periap_str = "4.52351" #
 default_tmax_str = str(zwoc.tf_default) # 1000
 default_speed_str = "4" #
+default_bhmass_str = str(zwoc.M_over_m_default) # 100000
 
 ###############################
 #       helper functions      #
@@ -356,8 +357,8 @@ def makefig_gw(t, H, Htype):
     )
     return fig
 
-def create_gw_figures(t, r, phi):
-    Iddot = zwoc.get_Iddot(t, r, phi)
+def create_gw_figures(t, r, phi, bhmass):
+    Iddot = zwoc.get_Iddot(t, r, phi, bhmass)
     # the derivatives make the Iddot smaller... pad them out with zeros
     Hplus = np.concatenate( (Iddot[0][0], [0,0,0,0]) )
     Hcross = np.concatenate( (Iddot[1][0], [0,0,0,0]) )
@@ -878,6 +879,7 @@ def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax)
     ],
     [
         Input('stored-orbit', 'data'),
+        Input('bhmass-str', 'value'),
     ],
     [
         State('stored-energy', 'data'),
@@ -886,11 +888,12 @@ def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax)
         State('stored-periap', 'data'),        
     ],
 )
-def recalculate_gw(orbit_data, E, ell, ecc, periap):
+def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap):
     t = orbit_data['t']
     r = orbit_data['r']
     phi = orbit_data['phi']
-    gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi)
+    bhmass = get_number_from_string(bhmass_str)    
+    gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi, bhmass)
     stored_data = dict(t = t, plus = Hp, cross = Hc)
     # output the data to user (this should usually be turned off!)
     if print_out_data:
@@ -921,7 +924,7 @@ init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
 init_orbit_data = dict(r = r_t, phi = phi_t)
 init_pot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
 init_gw_plus_fig, init_gw_cross_fig, t, Hp, Hc = \
-    create_gw_figures(t, r_t, phi_t)
+    create_gw_figures(t, r_t, phi_t, float(default_bhmass_str))
 init_gw_data = dict(t = t, plus = Hp, cross = Hc)
 #
 #--- Grab the webpage from the zoom-whirl app html module
@@ -935,7 +938,8 @@ initial_dashboard_page = zwah.make_dashboard_webpage(
     default_ecc_str,
     default_periap_str,    
     default_tmax_str,
-    default_speed_str,        
+    default_speed_str,
+    default_bhmass_str,            
     )
 
 # run the app
