@@ -1,0 +1,31 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Zoom-Whirl Web App
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Benjamin P
+    family-names: Holder
+    email: holderb@gvsu.edu
+    affiliation: Grand Valley State University
+  - given-names: Steven
+    affiliation: Grand Valley State University
+    family-names: Pakiela
+repository-code: 'https://github.com/holderbp/zoom-whirl-web-app'
+abstract: >-
+  Python/Dash/Plotly code for an interactive app that plots
+  the (bound) Schwarzschild geodesics. Accompanies a
+  manuscript on Zoom-Whirl-type orbits.
+keywords:
+  - gravitational-waves
+  - general-relativity
+  - schwarzschild
+  - zoom-whirl
+license: MIT
+commit: 64b1c2c
+version: '0.1'
+date-released: '2023-03-15'
