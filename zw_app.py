@@ -93,7 +93,7 @@ default_angmom_str = "3.7" # "4.0"
 default_energy_str = "-0.03445" # "-0.03"
 default_ecc_str = "0.633223" # 
 default_periap_str = "4.52351" #
-default_tmax_str = str(zwoc.tf_default) # 1000
+default_tmax_str = str(int(zwoc.tf_default)) # 1000
 default_speed_str = "4" #
 default_bhmass_str = str(zwoc.M_over_m_default) # 100000
 
@@ -265,11 +265,15 @@ def get_number_from_string(valstr):
     except ValueError:
         return None
 
-def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=False):
+def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
+                                checkvalid=False):
     ell = get_number_from_string(angmom_str)
     E = get_number_from_string(energy_str)
     ecc = get_number_from_string(ecc_str)
     periap = get_number_from_string(periap_str)
+    tmax = get_number_from_string(tmax_str)
+    if tmax is not None:
+        tmax = int(tmax)
     # check validity
     if checkvalid:
         if ( (ell**2 < 12*(G*M)**2) | (ell > ell_max) ):
@@ -280,7 +284,7 @@ def get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, che
             ecc = None
         if (periap < 4*G*M):
             periap = None
-    return [ell, E, ecc, periap]
+    return [ell, E, ecc, periap, tmax]
 
 def makefig_effpot(r, V, VN, E, win_rmin, win_rmax, win_Vmin, win_Vmax):
     # make the plotly figure object
@@ -644,13 +648,14 @@ app.clientside_callback(
 def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
                                n_clicks, ell_cur, E_cur, ecc_cur, periap_cur, tmax_cur, offset):
     # convert input strings to numbers (and check for invalid/erroneous)
-    [ell_new, E_new, ecc_new, periap_new] = \
-        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
+    [ell_new, E_new, ecc_new, periap_new, tmax_new] = \
+        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
+                                    checkvalid=True)
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     # assume tmax unchanged for now
-    tmax = int(tmax_cur)
-    if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
+    tmax = tmax_cur
+    if ( (None in [ell_new, E_new, ecc_new, periap_new, tmax_new]) ):
         #
         # invalid/erroneous input -> revert to current values
         #
@@ -662,11 +667,9 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
         #
         # Default button pushed -> revert to default values
         #
-        [ell, E, ecc, periap] = \
+        [ell, E, ecc, periap, tmax] = \
             get_all_values_from_strings(default_angmom_str, default_energy_str,
-                                        default_ecc_str, default_periap_str)
-        # and reset tmax to default value
-        tmax = int(zwoc.tf_default)
+                                        default_ecc_str, default_periap_str, default_tmax_str)
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
            | (trigger['prop_id'] == '.') ):
            #
@@ -701,7 +704,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
         ecc = ecc_cur
         periap = periap_cur
         # but change the time of integration
-        tmax = int(get_number_from_string(tmax_str))
+        tmax = tmax_new
         # as long as it is within the allowed range
         if ( (tmax >= float(zwah.tmax_min_str))
              & (tmax <= float(zwah.tmax_max_str)) ):
@@ -709,7 +712,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
             pass
         else:
             # if out of bounds, leave tmax unchanged
-            tmax = int(tmax_cur)
+            tmax = tmax_cur
     #
     #--- Create the effective potential figure and proceed...
     #
@@ -736,11 +739,17 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
     ],
 )
 def change_speed(speed_str, oldspeed):
-    newspeed = int(get_number_from_string(speed_str))
-    if ( (newspeed >= float(zwah.speed_min_str))
+    newspeed = get_number_from_string(speed_str)
+    if (newspeed is None):
+        # revert to previous if input is bad
+        return oldspeed, str(oldspeed)
+    elif ( (newspeed >= float(zwah.speed_min_str))
          & (newspeed <= float(zwah.speed_max_str)) ):
+        # accept input if in range
+        newspeed=int(newspeed)
         return newspeed, str(newspeed)
     else:
+        # otherwise revert to previous
         return oldspeed, str(oldspeed)
 
 #
@@ -854,16 +863,16 @@ def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, peria
         State('energy-val-str', 'value'),
         State('ecc-val-str', 'value'),
         State('periap-val-str', 'value'),
-        State('stored-tmax', 'data'),        
+        State('tmax-val-str', 'value'),
     ],
 )
-def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax):
+def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax_str):
     # The input energy and angular momentum values should
     # always be valid, because if a user entry is not valid,
     # the remake_effective_potential() callback will adjust
-    # them to their (valid) default values.    
-    [ell, E, ecc, periap] = \
-        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str)
+    # them to their (valid) default values.
+    [ell, E, ecc, periap, tmax] = \
+        get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, tmax_str)
     fig_orb, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
     stored_data = dict(t = t, r = r_t, phi = phi_t)
     return fig_orb, stored_data
@@ -928,7 +937,7 @@ def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap, bhmass_cur):
 #
 ell = get_number_from_string(default_angmom_str)
 E = get_number_from_string(default_energy_str)
-tmax = get_number_from_string(default_tmax_str)
+tmax = int(get_number_from_string(default_tmax_str))
 init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
 init_orbit_data = dict(r = r_t, phi = phi_t)
 init_pot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)

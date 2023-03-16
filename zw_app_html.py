@@ -111,7 +111,7 @@ def make_dashboard_webpage(
                       modified_timestamp=-1),
             dcc.Store(id='stored-tmax',
                       storage_type='memory',
-                      data=float(zwoc.tf_default),
+                      data=int(zwoc.tf_default),
                       clear_data=False,
                       modified_timestamp=-1),
             dcc.Store(id='stored-speed',
