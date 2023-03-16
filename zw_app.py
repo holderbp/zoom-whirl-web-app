@@ -95,7 +95,7 @@ default_energy_str = "-0.03445" # "-0.03"
 default_ecc_str = "0.633223" # 
 default_periap_str = "4.52351" #
 default_tmax_str = str(zwoc.tf_default) # 1000
-default_speed_str = "1" #
+default_speed_str = "4" #
 
 ###############################
 #       helper functions      #
