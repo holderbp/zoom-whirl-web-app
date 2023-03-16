@@ -5,30 +5,27 @@ import scipy.optimize as spo
 #
 #--- Module parameters
 #
-ell = 4.0
-E = -0.03
 G = 1
 M = 1
 m = M/100000
 ti = 0
 tf_default = 1000
-tf = tf_default
 very_large_r = 100000
 
 # create potential graph data
-def Veff(r, getderiv=False):
+def Veff(r, ell, getderiv=False):
     if getderiv:
         return G*M/r**2 - ell**2/r**3 + 3*G*M*ell**2/r**4
     else:
         return -G*M/r + ell**2/(2*r**2) - G*M*ell**2 / r**3
 
-def VNeff(r):
+def VNeff(r, ell):
     return -G*M/r + ell**2/(2*r**2)
 
-def Veff_minus_E(r):
-    return Veff(r) - E
+def Veff_minus_E(r, ell, E):
+    return Veff(r, ell) - E
 
-def get_Veff_maxmin_r_values():
+def get_Veff_maxmin_r_values(ell):
     if ell**2 > 12*(G*M)**2:
         radical = np.sqrt(ell**2 - 12*(G*M)**2)
         # inner-unstable and outer-stable circular orbits
@@ -43,89 +40,65 @@ def get_Veff_maxmin_r_values():
         # no solutions
         return [None, None]
 
-def derivs(t, X):
+def derivs(t, X, ell):
     r = X[0]
     vr = X[1]
     phi = X[2]
     drdt = vr
-    dvdt = -Veff(r, getderiv=True)
+    dvdt = -Veff(r, ell, getderiv=True)
     dphidt = ell/r**2
     return [drdt, dvdt, dphidt]
 
-def apoapsis_event(t, y):
-    # event tracking finds when this is zero
-    return y[1]
-
-def get_peri_and_apoapsis():
+def get_peri_and_apoapsis(ell, E):
     # find r values of circular orbits (rp is in between)
-    [IUCO, ISCO] = get_Veff_maxmin_r_values()
-    rp = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True)
+    [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)
+    rp = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True, args=(ell, E))
     # then bisect with very large value
-    ra = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True)
+    ra = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True, args=(ell, E))
     return rp, ra
 
-def get_rwell(Vpeak):
-    global E
+def get_rwell(Vpeak, ell):
     if (ell**2 < 12*(G*M)**2):
         return None
     elif (ell > 4):
-        Eold = E
         E = 0.0
-        [IUCO, ISCO] = get_Veff_maxmin_r_values()
-        rwell = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True)
-        E = Eold
+        [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)
+        rwell = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True, args=(ell, E))
         return rwell
     else:
-        Eold = E
         E = Vpeak
-        [IUCO, ISCO] = get_Veff_maxmin_r_values()
-        rwell = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True)
-        E = Eold
+        [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)
+        rwell = spo.bisect(Veff_minus_E, a=ISCO, b=very_large_r, disp=True, args=(ell, E))
         return rwell
     
 def get_eccentricity(rp, ra):
     return (ra - rp) / (rp + ra)
     
-def get_orbit():
+def get_orbit(ell, E, tmax):
     #
     # Note: User must set zwoc.ell and zwoc.E first
     #
     #--- Get the value of r at periapsis
     #
-    [rp, ra] = get_peri_and_apoapsis()
+    [rp, ra] = get_peri_and_apoapsis(ell, E)
     #
     #--- set initial conditions, always at periapsis
     #
     X0 = [rp, 0.0, 0.0]
     #
-    #--- For apoapsis event tracking
-    #
-    apoapsis_event.terminal = False
-    apoapsis_event.direction = -1
-    #
     #--- Times to evaluate function
     #
-    Ntsteps = int(tf-ti)+1
-    evaltimes = np.linspace(ti, tf, num=Ntsteps)
+    Ntsteps = int(tmax-ti)+1
+    evaltimes = np.linspace(ti, tmax, num=Ntsteps)
     #
     #--- evolve
     #
-    sol = spi.solve_ivp(derivs, [ti, tf], X0, t_eval = evaltimes,
-                        rtol = 1e-8, atol = 1e-8,
-                        events = apoapsis_event)
+    sol = spi.solve_ivp(derivs, [ti, tmax], X0, t_eval = evaltimes,
+                        rtol = 1e-8, atol = 1e-8, args = (ell,))
     #
-    # grab apoapsis
     #
-    #  Fixme: not sure why this is here, can get from (rp, ra) above?
+    #  Fixme: I removed event tracking of apoapsis... do we need it?
     #
-    # try:
-    #     ra = sol.y_events[0][0][0]
-    #     # calculate eccentricity
-    #     ecc = get_eccentricity(rp, ra)
-    # except:
-    #     # apoapsis not reached
-    #     ra = None
-    #     ecc = None
     # get eccentricity
     ecc = get_eccentricity(rp, ra)
     # grab solution vectors

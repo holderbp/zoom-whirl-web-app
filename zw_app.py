@@ -147,12 +147,9 @@ def makefig_orbit(orb_r, orb_phi, ra):
     )
     return fig
 
-def create_orbit_figure(ell, E):
-    # Set the values of ang mom and energy in orbitcalc module
-    zwoc.ell = ell
-    zwoc.E = E
+def create_orbit_figure(ell, E, tmax):
     # evolve the orbit
-    t, r_t, phi_t, rp, ra, ecc = zwoc.get_orbit()
+    t, r_t, phi_t, rp, ra, ecc = zwoc.get_orbit(ell, E, tmax)
     # make a figure
     fig = makefig_orbit(r_t, phi_t, ra)
     # return the figure and the data
@@ -236,14 +233,10 @@ def get_ell_E_and_check_pars(ecc, periap, version=None):
         return [ell, E, e, periap]
 
 def get_ecc_periap_and_check_E(ell, E):
-    zwoc.G = G
-    zwoc.M = M
-    zwoc.ell = ell
-    zwoc.E = E
     # find the positions two circular orbits (inner-unstable, outer-stable)
-    r_inner, r_outer = zwoc.get_Veff_maxmin_r_values()
-    Vmin = zwoc.Veff(r_outer)
-    Vmax = zwoc.Veff(r_inner)
+    r_inner, r_outer = zwoc.get_Veff_maxmin_r_values(ell)
+    Vmin = zwoc.Veff(r_outer, ell)
+    Vmax = zwoc.Veff(r_inner, ell)
     deltaV = Vmax-Vmin
     #
     #--- check the energy value to make sure it is valid
@@ -251,7 +244,6 @@ def get_ecc_periap_and_check_E(ell, E):
     if E < Vmin:
         # just set to Vmin (stable circular orbit)
         E = Vmin
-        zwoc.E = E
     elif E > Vmax:
         # forbid plunging orbits and hyperbolic orbits...
         # set to just below peak or just below zero
@@ -261,9 +253,8 @@ def get_ecc_periap_and_check_E(ell, E):
         E1 = energy_frac_of_Vmax*deltaV + Vmin
         E2 = energy_frac_of_Vmax*(0 - Vmin) + Vmin
         E = min(E1, E2)
-        zwoc.E = E
     # get periapsis and apoapsis and calculate eccentricity
-    rp, ra = zwoc.get_peri_and_apoapsis()
+    rp, ra = zwoc.get_peri_and_apoapsis(ell, E)
     ecc = zwoc.get_eccentricity(rp, ra)
     return [ecc, rp, E]
 
@@ -378,27 +369,22 @@ def create_gw_figures(t, r, phi):
 
 def create_effective_potential_figure(ell, E):
     r = np.linspace(rmin, rmax, Npoints_r)
-    # when using the orbitcalc module, first set pars
-    zwoc.G = G
-    zwoc.M = M
-    zwoc.ell = ell
-    zwoc.E = E
     # calculate the potential
-    V = zwoc.Veff(r)
+    V = zwoc.Veff(r, ell)
     # calculate the Newtonian potential (not used because plot didn't work yet)
-    VN = zwoc.VNeff(r)
+    VN = zwoc.VNeff(r, ell)
     # find the positions two circular orbits (inner-unstable, outer-stable)
-    r_inner, r_outer = zwoc.get_Veff_maxmin_r_values()
-    Vmin = zwoc.Veff(r_outer)
-    Vmax = zwoc.Veff(r_inner)
+    r_inner, r_outer = zwoc.get_Veff_maxmin_r_values(ell)
+    Vmin = zwoc.Veff(r_outer, ell)
+    Vmax = zwoc.Veff(r_inner, ell)
     deltaV = Vmax-Vmin
     # get info for nice plotting regions
     if (ell < 4*G*M):
         # find other radius where Veff = Vmax
-        rwell = zwoc.get_rwell(Vmax)
+        rwell = zwoc.get_rwell(Vmax, ell)
     else:
         # find zero-crossing point of Veff
-        zerocross = zwoc.get_rwell(Vmax)
+        zerocross = zwoc.get_rwell(Vmax, ell)
         rwellA = 0.95*zerocross
         # set other one to rwellA plus 3 times dist to Vmin
         rwellB = 10*(r_outer-zerocross) + rwellA
@@ -408,7 +394,6 @@ def create_effective_potential_figure(ell, E):
     if E < Vmin:
         # just set to Vmin (stable circular orbit)
         E = Vmin
-        zwoc.E = E
     elif E > Vmax:
         # forbid plunging orbits and hyperbolic orbits...
         # set to just below peak or just below zero
@@ -418,16 +403,15 @@ def create_effective_potential_figure(ell, E):
         E1 = energy_frac_of_Vmax*deltaV + Vmin
         E2 = energy_frac_of_Vmax*(0 - Vmin) + Vmin
         E = min(E1, E2)
-        zwoc.E = E
     #
     #--- Get peri and apoapsis
     #
-    rp, ra = zwoc.get_peri_and_apoapsis()
+    rp, ra = zwoc.get_peri_and_apoapsis(ell, E)
     #
     #--- set the plotted window
     #
     #plot_rmax = 2*r_outer # rmax is twice circular orbit?
-    if (zwoc.ell < 4*G*M):
+    if (ell < 4*G*M):
         plot_rmin = 0.8*r_inner
         plot_rmax =1.02*rwell
         plot_Vmin = Vmin - deltaV*0.2
@@ -658,22 +642,22 @@ app.clientside_callback(
     ],
 )
 def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax_str,
-                               n_clicks, ell_old, E_old, ecc_old, periap_old, tmax_old, offset):
+                               n_clicks, ell_cur, E_cur, ecc_cur, periap_cur, tmax_cur, offset):
     # convert input strings to numbers (and check for invalid/erroneous)
     [ell_new, E_new, ecc_new, periap_new] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str, checkvalid=True)
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     # assume tmax unchanged for now
-    tmax = int(tmax_old)
+    tmax = int(tmax_cur)
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
         #
         # invalid/erroneous input -> revert to current values
         #
-        ell = ell_old
-        E = E_old
-        ecc = ecc_old
-        periap = periap_old
+        ell = ell_cur
+        E = E_cur
+        ecc = ecc_cur
+        periap = periap_cur
     elif ('default-button' in trigger['prop_id']):
         #
         # Default button pushed -> revert to default values
@@ -683,7 +667,6 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
                                         default_ecc_str, default_periap_str)
         # and reset tmax to default value
         tmax = int(zwoc.tf_default)
-        zwoc.tf = tmax
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
            | (trigger['prop_id'] == '.') ):
            #
@@ -698,36 +681,35 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
         periap = periap_new
         [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='ecc')
         if (None in [ell, E, ecc, periap]):
-            ell = ell_old
-            E = E_old
-            ecc = ecc_old
-            periap = periap_old
+            ell = ell_cur
+            E = E_cur
+            ecc = ecc_cur
+            periap = periap_cur
     elif ('periap' in trigger['prop_id']):
         ecc = ecc_new
         periap = periap_new
         [ell, E, ecc, periap] = get_ell_E_and_check_pars(ecc, periap, version='periap')
         if (None in [ell, E, ecc, periap]):
-            ell = ell_old
-            E = E_old
-            ecc = ecc_old
-            periap = periap_old
+            ell = ell_cur
+            E = E_cur
+            ecc = ecc_cur
+            periap = periap_cur
     elif ('tmax-val' in trigger['prop_id']):
         # all parameters are unchanged
-        ell = ell_old
-        E = E_old
-        ecc = ecc_old
-        periap = periap_old
+        ell = ell_cur
+        E = E_cur
+        ecc = ecc_cur
+        periap = periap_cur
         # but change the time of integration
         tmax = int(get_number_from_string(tmax_str))
         # as long as it is within the allowed range
         if ( (tmax >= float(zwah.tmax_min_str))
              & (tmax <= float(zwah.tmax_max_str)) ):
-            # change the max time in the orbit calculation module
-            zwoc.tf = tmax
-            # and the corresponding
+            # ok, will store new tmax
+            pass
         else:
             # if out of bounds, leave tmax unchanged
-            tmax = int(tmax_old)
+            tmax = int(tmax_cur)
     #
     #--- Create the effective potential figure and proceed...
     #
@@ -869,17 +851,18 @@ def download_data(n_clicks, orbit_data, gw_data, effpot_data, ell, E, ecc, peria
         State('angmom-val-str', 'value'),        
         State('energy-val-str', 'value'),
         State('ecc-val-str', 'value'),
-        State('periap-val-str', 'value'),        
+        State('periap-val-str', 'value'),
+        State('stored-tmax', 'data'),        
     ],
 )
-def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str):
+def recalculate_orbit(energy, angmom_str, energy_str, ecc_str, periap_str, tmax):
     # The input energy and angular momentum values should
     # always be valid, because if a user entry is not valid,
     # the remake_effective_potential() callback will adjust
     # them to their (valid) default values.    
     [ell, E, ecc, periap] = \
         get_all_values_from_strings(angmom_str, energy_str, ecc_str, periap_str)
-    fig_orb, t, r_t, phi_t = create_orbit_figure(ell, E)
+    fig_orb, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
     stored_data = dict(t = t, r = r_t, phi = phi_t,
                        resolution=default_orbit_resolution)
     return fig_orb, stored_data
@@ -936,7 +919,8 @@ def recalculate_gw(orbit_data, E, ell, ecc, periap):
 #
 ell = get_number_from_string(default_angmom_str)
 E = get_number_from_string(default_energy_str)
-init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E)
+tmax = get_number_from_string(default_tmax_str)
+init_orbit_fig, t, r_t, phi_t = create_orbit_figure(ell, E, tmax)
 init_orbit_data = dict(r = r_t, phi = phi_t,
                        resolution = default_orbit_resolution)
 init_pot_fig, E, r, V, E_v_r = create_effective_potential_figure(ell, E)
