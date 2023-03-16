@@ -17,6 +17,7 @@ tmax_min_str = "100"
 tmax_max_str = "10000"
 speed_min_str = "1"
 speed_max_str = "10"
+bhmass_min_str = "10000"
 
 ###############################
 #   dashboard webpage setup   #
@@ -166,7 +167,7 @@ def make_dashboard_webpage(
                                      'font-size': effpot_fontsize,
                                      'textAlign': 'center'}, children=[
                         html.Div( children=[
-                            html.Div( children="orbit speed: 1x ≤",
+                            html.Div( children="orbit speed: 1\u00d7 \u2264",  # \u2264 is ≤, \u00d7 is ×
                                 style={
                                     'display': 'inline-block',
                                     'margin-right': 5,
@@ -188,7 +189,7 @@ def make_dashboard_webpage(
                                 }
                             ),
                             html.Div(
-                                children="x ≤ " + speed_max_str + "x",
+                                children="\u00d7 \u2264 " + speed_max_str + "\u00d7",
                                 style={
                                     'display': 'inline-block',
                                     'margin-right': 5,
@@ -198,7 +199,7 @@ def make_dashboard_webpage(
                         ]),
                         html.Div( children=[
                             html.Div(
-                                children= "\u03c4\u2098\u2090\u2093 : " + tmax_min_str + " M ≤",
+                                children= "\u03c4\u2098\u2090\u2093 : " + tmax_min_str + " M \u2264",
                                 style={
                                     'display': 'inline-block',
                                     'margin-right': 5,
@@ -220,7 +221,7 @@ def make_dashboard_webpage(
                                 }
                             ),                                        
                             html.Div(
-                                children="≤ " + tmax_max_str + " M",
+                                children="\u2264 " + tmax_max_str + " M",
                                 style={
                                     'display': 'inline-block',
                                     'margin-right': 5,
@@ -330,7 +331,7 @@ def make_dashboard_webpage(
                                                        'margin-right': 10,
                                                    }),
                                         html.Div(
-                                            children="0 ≤",
+                                            children="0 \u2264",
                                             style={
                                                 'display': 'inline-block',
                                                 'margin-right': 5,
@@ -540,6 +541,8 @@ def make_dashboard_webpage(
                                     'font-size' : effpot_fontsize,
                                 }
                             ),
+                            html.Div(children=" \u2265 " + bhmass_min_str,  # \u2265 is ≥
+                                     style={'display': 'inline-block'}),
                         ]),
                         dbc.CardBody(
                             [

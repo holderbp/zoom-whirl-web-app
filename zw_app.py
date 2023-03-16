@@ -907,8 +907,10 @@ def recalculate_gw(orbit_data, bhmass_str, E, ell, ecc, periap, bhmass_cur):
     r = orbit_data['r']
     phi = orbit_data['phi']
     bhmass = get_number_from_string(bhmass_str)
-    if bhmass is None:
-        # bad user input, revert to prior value
+    if ( (bhmass is None) | (bhmass < float(zwah.bhmass_min_str)) ):
+        # either bad user input, or the requested M/m value
+        # is too small (orbit not well approximated by geodesic)
+        #     --> revert to prior value
         bhmass_str = str(bhmass_cur)
         bhmass = bhmass_cur
     gw_plus_fig, gw_cross_fig, t, Hp, Hc =  create_gw_figures(t, r, phi, bhmass)
