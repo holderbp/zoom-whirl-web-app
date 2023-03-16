@@ -665,7 +665,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
     # get trigger to see which change was made
     trigger = dash.callback_context.triggered[0]
     # assume tmax unchanged for now
-    tmax = tmax_old
+    tmax = int(tmax_old)
     if ( (None in [ell_new, E_new, ecc_new, periap_new]) ):
         #
         # invalid/erroneous input -> revert to current values
@@ -682,7 +682,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
             get_all_values_from_strings(default_angmom_str, default_energy_str,
                                         default_ecc_str, default_periap_str)
         # and reset tmax to default value
-        tmax = zwoc.tf_default
+        tmax = int(zwoc.tf_default)
         zwoc.tf = tmax
     elif ( ('angmom' in trigger['prop_id']) | ('energy' in trigger['prop_id'])
            | (trigger['prop_id'] == '.') ):
@@ -727,7 +727,7 @@ def remake_effective_potential(angmom_str, energy_str, ecc_str, periap_str, tmax
             # and the corresponding
         else:
             # if out of bounds, leave tmax unchanged
-            tmax = tmax_old
+            tmax = int(tmax_old)
     #
     #--- Create the effective potential figure and proceed...
     #
