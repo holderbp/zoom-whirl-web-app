@@ -6,8 +6,8 @@ import scipy.optimize as spo
 #--- Module parameters
 #
 G = 1  # using "geometrized" units where G=c=1 but left "G" in for clarity
-M = 1  # all dimensional quantities in units of M, but left "M" in for clarity
-M_over_m_default = 100000  # Fixme: this could be adjustable by user (only influences GW amplitude)
+M = 1  # set to unity such that all dimensional quantities in units of M (leave "M" in for clarity)
+M_over_m_default = 100000  # sets scale of GW amplitude
 ti = 0
 tf_default = 1000
 very_large_r = 100000
