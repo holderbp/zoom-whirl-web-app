@@ -465,7 +465,7 @@ def create_plot_for_export(bytes_io, ep_r, ep_V, ep_E, orb_phi, orb_r,
     # orbit plot
     ax3 = fig.add_subplot(gs[0:3,1], polar=True)
     ax3.plot(orb_phi, orb_r)
-    ax3.text(0.8, 0, r"$e$" + f" = {ecc:.3f}\n" + r"$r_p$" + f" = {periap:.2f}",
+    ax3.text(0.8, 0, r"$e$" + f" = {ecc:.3f}\n" + r"$r_p/M$" + f" = {periap:.2f}",
              horizontalalignment='center',
              verticalalignment='top', transform=ax3.transAxes)
     # Gwave-Hplus plot
