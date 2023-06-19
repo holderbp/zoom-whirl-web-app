@@ -65,6 +65,9 @@ def get_rwell(Vpeak, ell):
         [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)
         rwell = spo.bisect(Veff_minus_E, a=IUCO, b=ISCO, disp=True, args=(ell, E))
         return rwell
+    elif (ell == 4):
+        [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)        
+        return IUCO
     else:
         E = Vpeak
         [IUCO, ISCO] = get_Veff_maxmin_r_values(ell)
