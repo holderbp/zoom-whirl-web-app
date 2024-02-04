@@ -46,7 +46,7 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True,  # suppress initial load errors
 )
-app.title = 'Zoom-Whirl Interactive App - GVSU/Northwestern Gravity'
+app.title = 'Zoom-Whirl Interactive App/Simulation, GVSU-Northwestern Gravity'
 #
 #--- Create a server (used by heroku)
 #
